@@ -22,6 +22,32 @@ defmodule Notex.NoteTest do
       assert {:ok, %Note{note_name: "G#", octave: 3}} = parse_note("Ab3")
     end
 
+    test "parses B# by canonicalizing to C with octave+1" do
+      assert {:ok, %Note{note_name: "C", octave: 4}} = parse_note("B#3")
+    end
+
+    test "parses E# by canonicalizing to F" do
+      assert {:ok, %Note{note_name: "F", octave: 4}} = parse_note("E#4")
+    end
+
+    test "parses Cb by canonicalizing to B with octave-1" do
+      assert {:ok, %Note{note_name: "B", octave: 3}} = parse_note("Cb4")
+    end
+
+    test "parses Fb by canonicalizing to E" do
+      assert {:ok, %Note{note_name: "E", octave: 4}} = parse_note("Fb4")
+    end
+
+    test "B#9 is out of range (would be C10)" do
+      assert {:error, message} = parse_note("B#9")
+      assert message =~ "Invalid octave"
+    end
+
+    test "Cb0 is out of range (would be B-1)" do
+      assert {:error, message} = parse_note("Cb0")
+      assert message =~ "Invalid octave"
+    end
+
     test "rejects note names outside the musical alphabet (H1)" do
       assert {:error, message} = parse_note("H1")
       assert message =~ "Invalid note_name"
@@ -64,6 +90,22 @@ defmodule Notex.NoteTest do
       note_2 = ~n[G4]
 
       assert true = equal?(note_1, note_2)
+    end
+
+    test "B#3 equals C4" do
+      assert true = equal?(~n[B#3], ~n[C4])
+    end
+
+    test "Cb4 equals B3" do
+      assert true = equal?(~n[Cb4], ~n[B3])
+    end
+
+    test "E#4 equals F4" do
+      assert true = equal?(~n[E#4], ~n[F4])
+    end
+
+    test "Fb4 equals E4" do
+      assert true = equal?(~n[Fb4], ~n[E4])
     end
   end
 

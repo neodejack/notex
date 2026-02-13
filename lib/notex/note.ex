@@ -92,8 +92,8 @@ defmodule Notex.Note do
   end
 
   defp build_note(note_name, octave) when is_binary(note_name) and is_integer(octave) do
-    with {:ok, parsed_note_name} <- parse_note_name(note_name),
-         {:ok, parsed_octave} <- parse_octave(octave) do
+    with {:ok, {parsed_note_name, octave_delta}} <- parse_note_name(note_name),
+         {:ok, parsed_octave} <- parse_octave(octave + octave_delta) do
       {:ok,
        %Note{
          note_name: parsed_note_name,
@@ -131,15 +131,12 @@ defmodule Notex.Note do
   end
 
   defp parse_note_name(note_name) do
-    with {:ok, normalized_note_name} <- normalize_note_name(note_name),
-         true <- valid_note_name?(normalized_note_name) do
-      {:ok, normalized_note_name}
-    else
-      :error ->
-        {:error, invald_note_name_error(note_name)}
+    {normalized_note_name, octave_delta} = normalize_note_name(note_name)
 
-      false ->
-        {:error, invald_note_name_error(note_name)}
+    if valid_note_name?(normalized_note_name) do
+      {:ok, {normalized_note_name, octave_delta}}
+    else
+      {:error, invald_note_name_error(note_name)}
     end
   end
 
@@ -151,24 +148,27 @@ defmodule Notex.Note do
     end
   end
 
-  defp normalize_note_name(note_name)
-
   defp normalize_note_name(<<letter>>) do
-    {:ok, String.upcase(<<letter>>)}
+    {String.upcase(<<letter>>), 0}
   end
 
   defp normalize_note_name(<<letter, accidental>>) do
     note_name = String.upcase(<<letter>>) <> <<accidental>>
 
-    case <<accidental>> do
-      "b" -> Map.fetch(Constant.flat_to_sharp_map(), note_name)
-      "#" -> {:ok, note_name}
-      _ -> :error
+    cond do
+      Map.has_key?(Constant.enharmonic_map(), note_name) ->
+        Map.fetch!(Constant.enharmonic_map(), note_name)
+
+      Map.has_key?(Constant.flat_to_sharp_map(), note_name) ->
+        {Map.fetch!(Constant.flat_to_sharp_map(), note_name), 0}
+
+      true ->
+        {note_name, 0}
     end
   end
 
-  defp normalize_note_name(_) do
-    :error
+  defp normalize_note_name(invalid_note_name) do
+    {invalid_note_name, 0}
   end
 
   defp canonical_name(name), do: Map.get(Constant.flat_to_sharp_map(), name, name)

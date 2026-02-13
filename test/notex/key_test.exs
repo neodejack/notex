@@ -75,6 +75,15 @@ defmodule Notex.KeyTest do
                |> Enum.map(&to_string/1)
     end
 
+    test "B# major (enharmonic to C)" do
+      import Note
+
+      assert ["C4", "D4", "E4", "F4", "G4", "A4", "B4"] =
+               ~n[B#3]
+               |> Key.major()
+               |> Enum.map(&to_string/1)
+    end
+
     test "Db major" do
       assert ["C#4", "D#4", "F4", "F#4", "G#4", "A#4", "C5"] =
                %Note{
