@@ -5,91 +5,91 @@ defmodule Notex.NoteTest do
 
   alias Notex.Note
 
-  describe "parse_note/1" do
+  describe "parse/1" do
     test "parses simple natural notes" do
-      assert {:ok, %Note{note_name: "C", octave: 4}} = parse_note("C4")
+      assert {:ok, %Note{note_name: "C", octave: 4}} = parse("C4")
     end
 
     test "normalizes lowercase input" do
-      assert {:ok, %Note{note_name: "G", octave: 2}} = parse_note("g2")
+      assert {:ok, %Note{note_name: "G", octave: 2}} = parse("g2")
     end
 
     test "parses sharp notes" do
-      assert {:ok, %Note{note_name: "F#", octave: 9}} = parse_note("F#9")
+      assert {:ok, %Note{note_name: "F#", octave: 9}} = parse("F#9")
     end
 
     test "parses flat notes by converting them to their enharmonic sharp" do
-      assert {:ok, %Note{note_name: "G#", octave: 3}} = parse_note("Ab3")
+      assert {:ok, %Note{note_name: "G#", octave: 3}} = parse("Ab3")
     end
 
     test "parses B# by canonicalizing to C with octave+1" do
-      assert {:ok, %Note{note_name: "C", octave: 4}} = parse_note("B#3")
+      assert {:ok, %Note{note_name: "C", octave: 4}} = parse("B#3")
     end
 
     test "parses E# by canonicalizing to F" do
-      assert {:ok, %Note{note_name: "F", octave: 4}} = parse_note("E#4")
+      assert {:ok, %Note{note_name: "F", octave: 4}} = parse("E#4")
     end
 
     test "parses Cb by canonicalizing to B with octave-1" do
-      assert {:ok, %Note{note_name: "B", octave: 3}} = parse_note("Cb4")
+      assert {:ok, %Note{note_name: "B", octave: 3}} = parse("Cb4")
     end
 
     test "parses Fb by canonicalizing to E" do
-      assert {:ok, %Note{note_name: "E", octave: 4}} = parse_note("Fb4")
+      assert {:ok, %Note{note_name: "E", octave: 4}} = parse("Fb4")
     end
 
     test "B#9 is out of range (would be C10)" do
-      assert {:error, message} = parse_note("B#9")
+      assert {:error, message} = parse("B#9")
       assert message =~ "Invalid octave"
     end
 
     test "Cb0 is out of range (would be B-1)" do
-      assert {:error, message} = parse_note("Cb0")
+      assert {:error, message} = parse("Cb0")
       assert message =~ "Invalid octave"
     end
 
     test "rejects note names outside the musical alphabet (H1)" do
-      assert {:error, message} = parse_note("H1")
+      assert {:error, message} = parse("H1")
       assert message =~ "Invalid note_name"
     end
 
     test "rejects malformed accidental notation (T-4)" do
-      assert {:error, message} = parse_note("T-4")
+      assert {:error, message} = parse("T-4")
       assert message =~ "Invalid note_name"
     end
 
     test "rejects invalid lowercase-only note names (ii)" do
-      assert {:error, message} = parse_note("ii")
+      assert {:error, message} = parse("ii")
       assert message =~ "Invalid octave"
     end
 
     test "requires an octave character (A)" do
-      assert {:error, message} = parse_note("A")
+      assert {:error, message} = parse("A")
       assert message =~ "Bad note shape"
     end
 
     test "requires an octave character (Ab)" do
-      assert {:error, message} = parse_note("Ab")
+      assert {:error, message} = parse("Ab")
       assert message =~ "Invalid octave"
     end
 
     test "rejects non-digit octave characters" do
-      assert {:error, message} = parse_note("C#x")
+      assert {:error, message} = parse("C#x")
       assert message =~ "Invalid octave"
     end
 
     test "rejects inputs that are not exactly two or three characters long" do
-      assert {:error, message} = parse_note("C#44")
+      assert {:error, message} = parse("C#44")
       assert message =~ "Bad note shape"
     end
   end
 
   describe "equal?/2" do
     test "G4" do
-      note_1 = ~n[g4]
-      note_2 = ~n[G4]
+      note1 = ~n[g4]
+      note2 = ~n[G4]
 
-      assert true = equal?(note_1, note_2)
+      assert true = equal?(note1, note2)
     end
 
     test "B#3 equals C4" do
