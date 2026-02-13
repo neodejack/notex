@@ -3,6 +3,8 @@ defmodule Notex.Note do
   alias __MODULE__
   alias Notex.Constant
 
+  @type t :: %__MODULE__{note_name: String.t(), octave: integer()}
+
   @enforce_keys [:note_name, :octave]
   defstruct [:note_name, :octave]
 
@@ -12,12 +14,12 @@ defmodule Notex.Note do
     end
   end
 
-  @spec new(String.t(), integer()) :: {:ok, %Note{}} | {:error, String.t()}
+  @spec new(String.t(), integer()) :: {:ok, t()} | {:error, String.t()}
   def new(note_name, octave) when is_binary(note_name) and is_integer(octave) do
     build_note(note_name, octave)
   end
 
-  @spec new!(String.t(), integer()) :: %Note{}
+  @spec new!(String.t(), integer()) :: t()
   def new!(note_name, octave) when is_binary(note_name) and is_integer(octave) do
     case new(note_name, octave) do
       {:ok, note} -> note
@@ -25,13 +27,10 @@ defmodule Notex.Note do
     end
   end
 
-  @spec equal?(%Note{}, %Note{}) :: boolean()
-  def equal?(%Note{} = note_1, %Note{} = note_2) do
-    note_1.octave == note_2.octave and
-      canonical_name(note_1.note_name) == canonical_name(note_2.note_name)
-  end
+  @spec equal?(t(), t()) :: boolean()
+  def equal?(%Note{} = note1, %Note{} = note2), do: note1 == note2
 
-  @spec transpose!(%Note{}, integer()) :: %Note{}
+  @spec transpose!(t(), integer()) :: t()
   def transpose!(%Note{} = note, semitones) when is_integer(semitones) do
     case transpose(note, semitones) do
       {:ok, new_note} -> new_note
@@ -39,11 +38,10 @@ defmodule Notex.Note do
     end
   end
 
-  @spec transpose(%Note{}, integer()) :: {:ok, %Note{}} | {:error, String.t()}
+  @spec transpose(t(), integer()) :: {:ok, t()} | {:error, String.t()}
   def transpose(%Note{note_name: note_name, octave: octave}, semitones) when is_integer(semitones) do
     scale = Constant.all_note_names()
     size = length(scale)
-    note_name = canonical_name(note_name)
     pos = Enum.find_index(scale, &(&1 == note_name))
     total = pos + semitones
 
@@ -56,24 +54,24 @@ defmodule Notex.Note do
     end
   end
 
-  def sigil_n(note, []), do: parse_note!(note)
+  def sigil_n(note, []), do: parse!(note)
 
-  @spec parse_note!(binary()) :: %Note{}
-  def parse_note!(note) do
-    case parse_note(note) do
+  @spec parse!(binary()) :: t()
+  def parse!(note) do
+    case parse(note) do
       {:ok, note} -> note
       {:error, reason} -> raise ArgumentError, "Failed to build note, reason:\n#{reason}"
     end
   end
 
-  @spec parse_note(binary()) :: {:ok, %Note{}} | {:error, String.t()}
-  def parse_note(note)
+  @spec parse(binary()) :: {:ok, t()} | {:error, String.t()}
+  def parse(note)
 
-  def parse_note(<<note_name, octave>>), do: build_note(<<note_name>>, <<octave>>)
+  def parse(<<note_name, octave>>), do: build_note(<<note_name>>, <<octave>>)
 
-  def parse_note(<<note_name, accidental, octave>>), do: build_note(<<note_name, accidental>>, <<octave>>)
+  def parse(<<note_name, accidental, octave>>), do: build_note(<<note_name, accidental>>, <<octave>>)
 
-  def parse_note(note) when is_binary(note) do
+  def parse(note) when is_binary(note) do
     {:error,
      """
      Bad note shape 
@@ -81,6 +79,26 @@ defmodule Notex.Note do
      expect: 2 or 3 characters of string
      received: #{inspect(note)}
      """}
+  end
+
+  @spec compare(t(), t()) :: :gt | :lt | :eq
+  def compare(%Note{} = note1, %Note{} = note2) do
+    note1_abs = absolute_semitones(note1)
+    note2_abs = absolute_semitones(note2)
+
+    cond do
+      note1_abs > note2_abs -> :gt
+      note1_abs < note2_abs -> :lt
+      true -> :eq
+    end
+  end
+
+  defp absolute_semitones(%Note{} = note) do
+    size = Constant.note_name_count()
+    indexes = Constant.note_name_indexes()
+    note_pos = Map.fetch!(indexes, note.note_name)
+
+    note.octave * size + note_pos
   end
 
   defp build_note(note_name, octave) when is_binary(note_name) and is_binary(octave) do
@@ -92,7 +110,7 @@ defmodule Notex.Note do
   end
 
   defp build_note(note_name, octave) when is_binary(note_name) and is_integer(octave) do
-    with {:ok, {parsed_note_name, octave_delta}} <- parse_note_name(note_name),
+    with {:ok, {parsed_note_name, octave_delta}} <- parse_name(note_name),
          {:ok, parsed_octave} <- parse_octave(octave + octave_delta) do
       {:ok,
        %Note{
@@ -130,7 +148,7 @@ defmodule Notex.Note do
     octave in Constant.all_octaves()
   end
 
-  defp parse_note_name(note_name) do
+  defp parse_name(note_name) do
     {normalized_note_name, octave_delta} = normalize_note_name(note_name)
 
     if valid_note_name?(normalized_note_name) do
@@ -170,6 +188,4 @@ defmodule Notex.Note do
   defp normalize_note_name(invalid_note_name) do
     {invalid_note_name, 0}
   end
-
-  defp canonical_name(name), do: Map.get(Constant.flat_to_sharp_map(), name, name)
 end
