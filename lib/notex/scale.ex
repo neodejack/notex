@@ -2,13 +2,14 @@ defmodule Notex.Scale do
   @moduledoc false
   alias Notex.Constant
   alias Notex.Note
+  alias Notex.ScaleType
 
   @spec notes(%Note{}, module()) :: {:ok, [%Note{}]} | {:error, binary()}
   def notes(tonic, scale_type) when is_atom(scale_type) do
     with {:ok, all_notes} <- all_notes_from_tonic(tonic) do
       notes =
         scale_type
-        |> semitones()
+        |> ScaleType.relative_semitones()
         |> take_scale_note(all_notes)
 
       {:ok, notes}
@@ -20,13 +21,6 @@ defmodule Notex.Scale do
     case notes(tonic, scale_type) do
       {:ok, notes} -> notes
       {:error, reason} -> raise ArgumentError, reason
-    end
-  end
-
-  @spec semitones(module()) :: [integer()]
-  def semitones(scale_type) do
-    for r <- scale_type.relative_notes() do
-      Map.fetch!(Constant.relative_semitones(), r)
     end
   end
 

@@ -300,7 +300,6 @@ defmodule Notex.NoteTest do
 
     test "large transposition out of lower bound returns error" do
       assert {:error, reason} = transpose(~n[C1], -25)
-      IO.puts(reason)
       assert reason =~ "Failed to create newly transoped note"
 
       assert {:error, reason} = transpose(~n[A2], -36)
