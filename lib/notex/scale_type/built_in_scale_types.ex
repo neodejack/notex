@@ -11,5 +11,5 @@ defmodule Notex.ScaleType.Minor do
   @behaviour Notex.ScaleType
 
   def name, do: "minor"
-  def relative_notes, do: [:one, :two, :flat_three, :four, :five, :flat_six, :seven]
+  def relative_notes, do: [:one, :two, :flat_three, :four, :five, :flat_six, :flat_seven]
 end
