@@ -4,7 +4,7 @@ defmodule Notex.Scale do
   alias Notex.Note
   alias Notex.ScaleType
 
-  @spec notes(%Note{}, module()) :: {:ok, [%Note{}]} | {:error, binary()}
+  @spec notes(Note.t(), module()) :: {:ok, [Note.t()]} | {:error, String.t()}
   def notes(tonic, scale_type) when is_atom(scale_type) do
     with {:ok, all_notes} <- all_notes_from_tonic(tonic) do
       notes =
@@ -16,7 +16,7 @@ defmodule Notex.Scale do
     end
   end
 
-  @spec notes!(%Note{}, module()) :: [%Note{}]
+  @spec notes!(Note.t(), module()) :: [Note.t()]
   def notes!(tonic, scale_type) when is_atom(scale_type) do
     case notes(tonic, scale_type) do
       {:ok, notes} -> notes
