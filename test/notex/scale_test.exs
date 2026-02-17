@@ -6,7 +6,9 @@ defmodule Notex.ScaleTest do
   alias Notex.Scale
   alias Notex.ScaleType
 
-  describe "major scale notes/2" do
+  doctest Scale
+
+  describe "notes/2" do
     test "C major" do
       assert ["C4", "D4", "E4", "F4", "G4", "A4", "B4"] = scale_notes_string(~n[C4], ScaleType.Major)
     end
@@ -30,6 +32,35 @@ defmodule Notex.ScaleTest do
 
     test "tonic at B8 succeeds" do
       assert {:ok, _notes} = Scale.notes(~n[B8], ScaleType.Major)
+    end
+  end
+
+  describe "atom scale type resolution" do
+    test "lowercase atom scale_type" do
+      assert ["C4", "D4", "E4", "F4", "G4", "A4", "B4"] = scale_notes_string(~n[C4], :major)
+    end
+
+    test "capitalized atom scale_type" do
+      assert ["C4", "D4", "E4", "F4", "G4", "A4", "B4"] = scale_notes_string(~n[C4], :Major)
+    end
+
+    test "undefined scale type returns error" do
+      assert {:error, reason} = Scale.notes(~n[C4], :nonexistent)
+      assert reason =~ "not found"
+    end
+  end
+
+  describe "custom scale type notes/2" do
+    defmodule MinorPentatonic do
+      @moduledoc false
+      @behaviour ScaleType
+
+      def name, do: "minor pentatonic"
+      def relative_notes, do: [:one, :flat_three, :four, :five, :flat_seven]
+    end
+
+    test "full module name" do
+      assert ["C4", "D#4", "F4", "G4", "A#4"] = scale_notes_string(~n[C4], MinorPentatonic)
     end
   end
 
