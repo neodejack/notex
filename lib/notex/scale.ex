@@ -4,11 +4,35 @@ defmodule Notex.Scale do
   alias Notex.Note
   alias Notex.ScaleType
 
-  @spec notes(Note.t(), module()) :: {:ok, [Note.t()]} | {:error, String.t()}
+  @doc """
+  Returns the notes of a scale built from the given `tonic` and `scale_type`.
+
+  `scale_type` accepts:
+
+    * A full module name (e.g. `Notex.ScaleType.Major`) — used as-is.
+    * A shorthand atom (e.g. `:major` or `:Major`) — capitalized and appended
+      to a built-in scale type under `Notex.ScaleType`. For example, `:major`
+      becomes `Notex.ScaleType.Major`.
+    * Any custom module implementing the `Notex.ScaleType` behaviour.
+
+  ## Examples
+
+      iex> Notex.Scale.notes(Notex.Note.new!("C", 4), :major)
+      {:ok, [~n[C4], ~n[D4], ~n[E4], ~n[F4], ~n[G4], ~n[A4], ~n[B4]]}
+
+      iex> Notex.Scale.notes(Notex.Note.new!("C", 4), Notex.ScaleType.Major)
+      {:ok, [~n[C4], ~n[D4], ~n[E4], ~n[F4], ~n[G4], ~n[A4], ~n[B4]]}
+
+      iex> Notex.Scale.notes(Notex.Note.new!("C", 4), :nonexistent)
+      {:error, "scale type :nonexistent not found"}
+
+  """
+  @spec notes(Note.t(), atom()) :: {:ok, [Note.t()]} | {:error, String.t()}
   def notes(tonic, scale_type) when is_atom(scale_type) do
-    with {:ok, all_notes} <- all_notes_from_tonic(tonic) do
+    with {:ok, resolved} <- resolve_scale_type(scale_type),
+         {:ok, all_notes} <- all_notes_from_tonic(tonic) do
       notes =
-        scale_type
+        resolved
         |> ScaleType.relative_semitones()
         |> take_scale_note(all_notes)
 
@@ -16,11 +40,30 @@ defmodule Notex.Scale do
     end
   end
 
-  @spec notes!(Note.t(), module()) :: [Note.t()]
+  @doc """
+  Bang variant of `notes/2`. Returns the list of notes directly or raises `ArgumentError`.
+  """
+  @spec notes!(Note.t(), module() | atom()) :: [Note.t()]
   def notes!(tonic, scale_type) when is_atom(scale_type) do
     case notes(tonic, scale_type) do
       {:ok, notes} -> notes
       {:error, reason} -> raise ArgumentError, reason
+    end
+  end
+
+  defp resolve_scale_type(scale_type) do
+    case Code.ensure_loaded(scale_type) do
+      {:error, _} ->
+        capitalized = scale_type |> Atom.to_string() |> String.capitalize() |> String.to_atom()
+        module = Module.concat(ScaleType, capitalized)
+
+        case Code.ensure_loaded(module) do
+          {:module, ^module} -> {:ok, module}
+          {:error, _} -> {:error, "scale type #{inspect(scale_type)} not found"}
+        end
+
+      {:module, ^scale_type} ->
+        {:ok, scale_type}
     end
   end
 
