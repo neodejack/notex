@@ -14,6 +14,12 @@ defmodule Notex.Note do
     end
   end
 
+  defimpl Inspect, for: Note do
+    def inspect(note, _opts) do
+      "~n[#{note.note_name}#{note.octave}]"
+    end
+  end
+
   @spec new(String.t(), integer()) :: {:ok, t()} | {:error, String.t()}
   def new(note_name, octave) when is_binary(note_name) and is_integer(octave) do
     build_note(note_name, octave)
