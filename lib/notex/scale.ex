@@ -1,5 +1,21 @@
 defmodule Notex.Scale do
-  @moduledoc false
+  @moduledoc """
+  A scale is a a list of Note that follows a harmonic pattern.
+
+  A scale is constructed by selecting notes from the chromatic scale starting
+  at the given tonic, based on the interval pattern defined by a `Notex.ScaleType`
+  module.
+
+  ## Examples
+
+      iex> import Notex.Note
+      iex> Notex.Scale.notes!(~n[C4], :major)
+      [~n[C4], ~n[D4], ~n[E4], ~n[F4], ~n[G4], ~n[A4], ~n[B4]]
+      iex> Notex.Scale.notes!(~n[A4], :minor)
+      [~n[A4], ~n[B4], ~n[C5], ~n[D5], ~n[E5], ~n[F5], ~n[G5]]
+
+  """
+
   alias Notex.Constant
   alias Notex.Note
   alias Notex.ScaleType
@@ -14,6 +30,8 @@ defmodule Notex.Scale do
       to a built-in scale type under `Notex.ScaleType`. For example, `:major`
       becomes `Notex.ScaleType.Major`.
     * Any custom module implementing the `Notex.ScaleType` behaviour.
+
+  Returns `{:ok, notes}` on success or `{:error, reason}` on failure.
 
   ## Examples
 
@@ -42,6 +60,13 @@ defmodule Notex.Scale do
 
   @doc """
   Bang variant of `notes/2`. Returns the list of notes directly or raises `ArgumentError`.
+
+  ## Examples
+
+      iex> import Notex.Note
+      iex> Notex.Scale.notes!(~n[C4], :major)
+      [~n[C4], ~n[D4], ~n[E4], ~n[F4], ~n[G4], ~n[A4], ~n[B4]]
+
   """
   @spec notes!(Note.t(), module() | atom()) :: [Note.t()]
   def notes!(tonic, scale_type) when is_atom(scale_type) do

@@ -3,6 +3,8 @@ defmodule Notex.ScaleTypeTest do
 
   alias Notex.ScaleType
 
+  doctest ScaleType
+
   defmodule MinorPentatonic do
     @moduledoc false
     @behaviour ScaleType

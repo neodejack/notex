@@ -4,14 +4,17 @@ defmodule Notex.MixProject do
   def project do
     [
       app: :notex,
-      version: "0.1.0",
+      version: "0.1.1",
       elixir: "~> 1.16",
+      name: "Notex",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
       description: description(),
       package: package(),
-      source_url: "https://github.com/neodejack/notex"
+      source_url: "https://github.com/neodejack/notex",
+      homepage_url: "https://hexdocs.pm/notex",
+      docs: docs()
     ]
   end
 
@@ -36,6 +39,17 @@ defmodule Notex.MixProject do
     ]
   end
 
+  defp docs do
+    [
+      main: "readme",
+      extras: ["README.md", "CHANGELOG.md"],
+      groups_for_modules: [
+        Core: [Notex.Note, Notex.Scale, Notex.ScaleType],
+        "Built-in Scale Types": [Notex.ScaleType.Major, Notex.ScaleType.Minor]
+      ]
+    ]
+  end
+
   defp deps do
     [
       {:ex_doc, "~> 0.40", only: :dev, runtime: false, warn_if_outdated: true},
@@ -46,7 +60,7 @@ defmodule Notex.MixProject do
   end
 
   defp description do
-    "it goes like this, the forth, the fifth. the minor falls and the major lift."
+    "It goes like this, the forth, the fifth."
   end
 
   defp package do
