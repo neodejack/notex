@@ -8,7 +8,10 @@ defmodule Notex.MixProject do
       elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      aliases: aliases()
+      aliases: aliases(),
+      description: description(),
+      package: package(),
+      source_url: "https://github.com/neodejack/notex"
     ]
   end
 
@@ -35,9 +38,21 @@ defmodule Notex.MixProject do
 
   defp deps do
     [
+      {:ex_doc, "~> 0.40", only: :dev, runtime: false, warn_if_outdated: true},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:styler, "~> 1.10", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
+    ]
+  end
+
+  defp description do
+    "it goes like this, the forth, the fifth. the minor falls and the major lift."
+  end
+
+  defp package do
+    [
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/neodejack/notex"}
     ]
   end
 end
