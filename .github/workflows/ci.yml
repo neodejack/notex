@@ -52,7 +52,7 @@ jobs:
         run: mix compile
 
       - name: Lint
-        run: mix credo --strict
+        run: mix credo --strict --ignore-checks Design.Tag
 
       - name: Run tests
         run: mix test

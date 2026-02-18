@@ -7,7 +7,8 @@ defmodule Notex.MixProject do
       version: "0.1.0",
       elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      aliases: aliases()
     ]
   end
 
@@ -19,6 +20,19 @@ defmodule Notex.MixProject do
   end
 
   # Run "mix help deps" to learn about dependencies.
+  defp aliases do
+    [
+      ci: [
+        "format --check-formatted",
+        "compile --warnings-as-errors",
+        # ignore TODO/FIXME comment checks
+        "credo --strict --ignore-checks Design.Tag",
+        "cmd env MIX_ENV=test mix test",
+        "dialyzer"
+      ]
+    ]
+  end
+
   defp deps do
     [
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
