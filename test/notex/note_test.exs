@@ -5,6 +5,8 @@ defmodule Notex.NoteTest do
 
   alias Notex.Note
 
+  doctest Note
+
   describe "parse/1" do
     test "parses simple natural notes" do
       assert {:ok, %Note{note_name: "C", octave: 4}} = parse("C4")

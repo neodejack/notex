@@ -1,8 +1,36 @@
 defmodule Notex.Note do
-  @moduledoc false
+  @moduledoc """
+  Represents a _[Scientific pitch notation](https://en.wikipedia.org/wiki/Scientific_pitch_notation)_ with a name and octave.
+
+  A `Notex.Note` is a struct with two fields:
+
+    * `:note_name` — the canonical note name (e.g. `"C"`, `"F#"`)
+    * `:octave` — the octave number (0–9)
+
+  ## Creating Notes
+
+  Use `new/2`, `parse/1`, or the `~n` sigil (available via `import Notex.Note`):
+
+      iex> Notex.Note.new("C", 4)
+      {:ok, ~n[C4]}
+
+      iex> Notex.Note.parse("Ab3")
+      {:ok, ~n[G#3]}
+
+      iex> import Notex.Note
+      iex> ~n[F#5]
+      ~n[F#5]
+
+  Notes implement `String.Chars` and `Inspect`, so they display as `"C4"` with
+  `to_string/1` and as `~n[C4]` when inspected.
+  """
+
   alias __MODULE__
   alias Notex.Constant
 
+  @typedoc """
+  A note struct with a `:note_name` and `:octave`.
+  """
   @type t :: %__MODULE__{note_name: String.t(), octave: integer()}
 
   @enforce_keys [:note_name, :octave]
@@ -20,11 +48,38 @@ defmodule Notex.Note do
     end
   end
 
+  @doc """
+  Creates a new note from a `note_name` string and an `octave` integer.
+
+  When creating notes, they are always converted to their canonical sharp form.
+  Flats are automatically converted to their enharmonic sharp equivalents (e.g. `"Ab"` becomes `"G#"`),
+  and boundary enharmonics are normalized
+  (`"B#"` becomes `"C"` with octave + 1, `"Cb"` becomes `"B"` with octave - 1).
+
+
+  Returns `{:ok, note}` on success or `{:error, reason}` if the note name
+  or octave is invalid.
+
+  ## Examples
+
+      iex> Notex.Note.new("C", 4)
+      {:ok, ~n[C4]}
+
+      iex> Notex.Note.new("Ab", 3)
+      {:ok, ~n[G#3]}
+
+      iex> Notex.Note.new("B#", 3)
+      {:ok, ~n[C4]}
+  """
   @spec new(String.t(), integer()) :: {:ok, t()} | {:error, String.t()}
   def new(note_name, octave) when is_binary(note_name) and is_integer(octave) do
     build_note(note_name, octave)
   end
 
+  @doc """
+  Bang variant of `new/2`. Returns the note directly or raises `ArgumentError`.
+
+  """
   @spec new!(String.t(), integer()) :: t()
   def new!(note_name, octave) when is_binary(note_name) and is_integer(octave) do
     case new(note_name, octave) do
@@ -33,9 +88,27 @@ defmodule Notex.Note do
     end
   end
 
+  @doc """
+  Returns `true` if two notes are structurally equal.
+
+  ## Examples
+
+      iex> import Notex.Note
+      iex> equal?(~n[C4], ~n[C4])
+      true
+      iex> equal?(~n[C4], ~n[D4])
+      false
+      iex> equal?(~n[B#3], ~n[C4])
+      true
+
+  """
   @spec equal?(t(), t()) :: boolean()
   def equal?(%Note{} = note1, %Note{} = note2), do: note1 == note2
 
+  @doc """
+  Bang variant of `transpose/2`. Returns the transposed note directly or raises `ArgumentError`.
+
+  """
   @spec transpose!(t(), integer()) :: t()
   def transpose!(%Note{} = note, semitones) when is_integer(semitones) do
     case transpose(note, semitones) do
@@ -44,6 +117,25 @@ defmodule Notex.Note do
     end
   end
 
+  @doc """
+  Transposes a note by the given number of `semitones`.
+
+  Positive values transpose up, negative values transpose down. Octave boundaries
+  are handled automatically.
+
+  Returns `{:ok, note}` on success or `{:error, reason}` if the resulting note
+  would be outside the valid octave range.
+
+  ## Examples
+
+      iex> transpose(~n[C4], 7)
+      {:ok, ~n[G4]}
+      iex> transpose(~n[B4], 1)
+      {:ok, ~n[C5]}
+      iex> transpose(~n[C4], -1)
+      {:ok, ~n[B3]}
+
+  """
   @spec transpose(t(), integer()) :: {:ok, t()} | {:error, String.t()}
   def transpose(%Note{note_name: note_name, octave: octave}, semitones) when is_integer(semitones) do
     scale = Constant.all_note_names()
@@ -60,8 +152,29 @@ defmodule Notex.Note do
     end
   end
 
+  @doc """
+  Sigil for creating notes inline.
+
+  Import `Notex.Note` to use the `~n` sigil. The sigil parses a note string
+  and raises on invalid input.
+
+  ## Examples
+
+      iex> import Notex.Note
+
+      iex> ~n[C4]
+      ~n[C4]
+
+      iex> ~n[G#5]
+      ~n[G#5]
+
+  """
   def sigil_n(note, []), do: parse!(note)
 
+  @doc """
+  Bang variant of `parse/1`. Returns the note directly or raises `ArgumentError`.
+
+  """
   @spec parse!(binary()) :: t()
   def parse!(note) do
     case parse(note) do
@@ -70,6 +183,32 @@ defmodule Notex.Note do
     end
   end
 
+  @doc """
+  Parses a string representation of a note into a `t:Notex.Note.t/0` struct.
+
+  Expects a 2- or 3-character string
+  - character one: a letter (`A`–`G`)
+  - (optional) character two: accidental (`#` or `b`)
+  - character three: a single-digit octave (`0`–`9`).
+
+  Flats are normalized to sharps, and lowercase letters are uppercased.
+
+  Returns `{:ok, note}` on success or `{:error, reason}` on failure.
+
+  ## Examples
+
+      iex> Notex.Note.parse("C4")
+      {:ok, ~n[C4]}
+
+      iex> Notex.Note.parse("Ab3")
+      {:ok, ~n[G#3]}
+
+      iex> Notex.Note.parse("B#3")
+      {:ok, ~n[C4]}
+
+      iex> {:error, _reason} = Notex.Note.parse("H1")
+
+  """
   @spec parse(binary()) :: {:ok, t()} | {:error, String.t()}
   def parse(note)
 
@@ -87,6 +226,21 @@ defmodule Notex.Note do
      """}
   end
 
+  @doc """
+  Compares two notes by their absolute pitch.
+
+  Returns `:gt`, `:lt`, or `:eq`.
+
+  ## Examples
+
+      iex> Notex.Note.compare(~n[D4], ~n[C4])
+      :gt
+      iex> Notex.Note.compare(~n[C4], ~n[C4])
+      :eq
+      iex> Notex.Note.compare(~n[C4], ~n[D4])
+      :lt
+
+  """
   @spec compare(t(), t()) :: :gt | :lt | :eq
   def compare(%Note{} = note1, %Note{} = note2) do
     note1_abs = absolute_semitones(note1)
