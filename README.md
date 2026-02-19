@@ -3,7 +3,17 @@
 [![Hex.pm](https://img.shields.io/hexpm/v/notex.svg)](https://hex.pm/packages/notex)
 [![Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/notex)
 
-A music theory library for Elixir — work with notes, scales, and scale types.
+A music theory library for Elixir — work with notes, scales, and chords(currently building).
+
+## Why did i build this
+
+I wanted to build [an ear training webapp](https://eargo.neospace.studio) using mainly elixir.
+
+To make the browser sing, i chose to work with [tone.js](https://tonejs.github.io/).
+
+[A note in tone.js is a string representation of Scientific pitch notation](https://tonejs.github.io/docs/15.1.22/types/Unit.Note.html).
+
+Thus i decided to use that as my foundation to build a music theory library in elixir, so that a web application can sing all sorts of lovely notes, scales and chords.
 
 ## Installation
 
@@ -12,7 +22,7 @@ Add `notex` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:notex, "~> 0.1.0"}
+    {:notex, "~> 0.1"}
   ]
 end
 ```
@@ -88,6 +98,21 @@ Notex.Scale.notes!(~n[A4], MyApp.MinorPentatonic)
 
 Full documentation is available on [HexDocs](https://hexdocs.pm/notex).
 
-## License
+## Development
 
-This project is licensed under the MIT License.
+i use mise to manage elixir and erlang version. if you have mise installed on your machine, to get started simply run
+
+```sh
+mise install
+
+mix deps.get
+
+mix test
+```
+
+
+You can run the full CI suite with either:
+
+```sh
+just ci
+```
