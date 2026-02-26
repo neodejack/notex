@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Publish Notex to Hex. Reads version from mix.exs.
+#
+# Usage:
+#   ./hack/publish
+
+REPO="neodejack/notex"
+POLL_INTERVAL=15
+TIMEOUT=900 # 15 minutes
+
+# 1. Read version from mix.exs
+VERSION=$(grep 'version:' mix.exs | head -1 | sed 's/.*version: "\(.*\)".*/\1/')
+TAG="v$VERSION"
+
+echo "==> Releasing Notex $TAG"
+
+# 2. Changelog check — must have a section AND content beneath it
+if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
+  echo "error: CHANGELOG.md has no entry for [$VERSION]" >&2
+  echo "  run: just bump $VERSION" >&2
+  exit 1
+fi
+
+# Extract lines between the version header and the next ## header (or EOF)
+CONTENT=$(sed -n "/^## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | tail -n +2 | grep -v "^## \[" | grep -v '^$' || true)
+if [ -z "$CONTENT" ]; then
+  echo "error: CHANGELOG.md has a [$VERSION] header but no content beneath it" >&2
+  echo "  write your changelog entries first" >&2
+  exit 1
+fi
+
+# 3. Preflight checks
+if ! command -v gh &>/dev/null; then
+  echo "error: gh CLI is required (brew install gh)" >&2
+  exit 1
+fi
+
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "error: working directory is dirty — commit or stash first" >&2
+  exit 1
+fi
+
+if git tag -l "$TAG" | grep -q "$TAG"; then
+  echo "error: tag $TAG already exists" >&2
+  exit 1
+fi
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# 4. Tag & push
+echo "==> Tagging $TAG on $BRANCH"
+git tag "$TAG"
+git push origin "$BRANCH" "$TAG"
+
+# 5. Poll CI — wait for the workflow run triggered by branch push
+echo "==> Waiting for CI to finish (timeout ${TIMEOUT}s)..."
+
+HEAD_SHA=$(git rev-parse HEAD)
+
+elapsed=0
+while true; do
+  RUN_ID=$(gh run list --workflow=ci.yml --branch="$BRANCH" --limit=5 --json databaseId,headSha \
+    --jq ".[] | select(.headSha == \"$HEAD_SHA\") | .databaseId" 2>/dev/null | head -1 || true)
+
+  if [ -n "$RUN_ID" ]; then
+    STATUS=$(gh run view "$RUN_ID" --json status --jq '.status')
+    if [ "$STATUS" = "completed" ]; then
+      CONCLUSION=$(gh run view "$RUN_ID" --json conclusion --jq '.conclusion')
+      if [ "$CONCLUSION" = "success" ]; then
+        echo ""
+        echo "==> CI passed"
+        break
+      else
+        echo ""
+        echo "error: CI failed (conclusion: $CONCLUSION)" >&2
+        echo "  https://github.com/$REPO/actions/runs/$RUN_ID" >&2
+        exit 1
+      fi
+    fi
+    printf "\r    waiting... %ds (status: %s)  " "$elapsed" "$STATUS"
+  else
+    printf "\r    waiting for run to appear... %ds  " "$elapsed"
+  fi
+
+  sleep "$POLL_INTERVAL"
+  elapsed=$((elapsed + POLL_INTERVAL))
+  if [ "$elapsed" -ge "$TIMEOUT" ]; then
+    echo ""
+    echo "error: timed out waiting for CI after ${TIMEOUT}s" >&2
+    exit 1
+  fi
+done
+
+# 6. Publish to Hex
+echo "==> Publishing to Hex"
+mix hex.publish
+
+echo ""
+echo "==> Done! Notex $TAG published to Hex"
+echo "    https://hex.pm/packages/notex/$VERSION"

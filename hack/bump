@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Bump Notex version and scaffold a changelog entry.
+#
+# Usage:
+#   ./hack/bump 0.2.0
+
+if [ $# -ne 1 ]; then
+  echo "usage: ./hack/bump VERSION" >&2
+  exit 1
+fi
+
+VERSION="${1#v}" # strip leading v if present
+
+# Validate version format
+if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+  echo "error: invalid version format '$VERSION' (expected X.Y.Z)" >&2
+  exit 1
+fi
+
+# Read current version from mix.exs
+CURRENT=$(grep 'version:' mix.exs | head -1 | sed 's/.*version: "\(.*\)".*/\1/')
+
+if [ "$CURRENT" = "$VERSION" ]; then
+  echo "error: mix.exs is already at version $VERSION" >&2
+  exit 1
+fi
+
+# Bump version in mix.exs
+echo "==> Bumping version $CURRENT -> $VERSION in mix.exs"
+sed -i '' "s/version: \"$CURRENT\"/version: \"$VERSION\"/" mix.exs
+
+# Add changelog section after the semver preamble line
+TODAY=$(date +%Y-%m-%d)
+ENTRY="## [$VERSION] - $TODAY"
+
+if grep -q "## \[$VERSION\]" CHANGELOG.md; then
+  echo "==> CHANGELOG.md already has a [$VERSION] entry, skipping"
+else
+  echo "==> Adding [$VERSION] section to CHANGELOG.md"
+  sed -i '' "/^This project adheres to/a\\
+\\
+$ENTRY\\
+" CHANGELOG.md
+fi
+
+echo ""
+echo "==> Done! Now edit CHANGELOG.md and write your changelog under:"
+echo "    $ENTRY"
+echo ""
+echo "    Then commit and run: just publish"

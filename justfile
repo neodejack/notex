@@ -12,3 +12,8 @@ docs:
   mix docs
   open doc/index.html
 
+bump version:
+  ./hack/bump {{version}}
+
+publish:
+  ./hack/publish
