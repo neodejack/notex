@@ -59,7 +59,7 @@ defmodule Notex.ScaleType do
   | `:flat_seven`    | 10        | b7        |
   | `:seven`         | 11        | 7         |
   """
-  @callback relative_notes() :: [atom()]
+  @callback relative_notes() :: [Constant.relative_atoms()]
 
   # TODO: see if there is a way to emit warning if user custom_scale_type.relative_notes() not in Constant.relative_notes() |> Map.keys()
 

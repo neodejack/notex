@@ -25,6 +25,25 @@ defmodule Notex.Constant do
     "E#" => {"F", 0}
   }
 
+  @type relative_atoms() ::
+          :one
+          | :sharp_one
+          | :flat_two
+          | :two
+          | :sharp_two
+          | :flat_three
+          | :three
+          | :four
+          | :sharp_four
+          | :flat_five
+          | :five
+          | :sharp_five
+          | :flat_six
+          | :six
+          | :sharp_six
+          | :flat_seven
+          | :seven
+
   @relatives %{
     one: [semitones: 0, name: "1"],
     sharp_one: [semitones: 1, name: "#1"],
@@ -48,6 +67,7 @@ defmodule Notex.Constant do
   @relative_semitones Map.new(@relatives, fn {k, v} -> {k, v[:semitones]} end)
   @relative_names Map.new(@relatives, fn {k, v} -> {k, v[:name]} end)
 
+  def relatives, do: @relatives
   def relative_semitones, do: @relative_semitones
   def relative_names, do: @relative_names
   def all_note_names, do: @all_note_names
