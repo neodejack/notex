@@ -31,34 +31,34 @@ end
 
 ### Notes
 
-Create notes with `Notex.Note.new/2` or the `~n` sigil:
+Create notes with `Note.new/2` or the `~n` sigil:
 
 ```elixir
-import Notex.Note
+use Notex
 
 note = ~n[C4]
 # => ~n[C4]
 
-{:ok, note} = Notex.Note.new("G#", 5)
+{:ok, note} = Note.new("G#", 5)
 # => {:ok, ~n[G#5]}
 ```
 
 Parse note strings:
 
 ```elixir
-{:ok, note} = Notex.Note.parse("Ab3")
+{:ok, note} = Note.parse("Ab3")
 # => {:ok, ~n[G#3]}  (flats are normalized to sharps)
 ```
 
 Transpose notes by semitones:
 
 ```elixir
-import Notex.Note
+use Notex
 
-Notex.Note.transpose!(~n[C4], 7)
+Note.transpose!(~n[C4], 7)
 # => ~n[G4]
 
-Notex.Note.transpose!(~n[B4], 1)
+Note.transpose!(~n[B4], 1)
 # => ~n[C5]  (crosses octave boundary)
 ```
 
@@ -67,13 +67,32 @@ Notex.Note.transpose!(~n[B4], 1)
 Build scales from a tonic note and a scale type:
 
 ```elixir
-import Notex.Note
+use Notex
 
-Notex.Scale.notes!(~n[C4], :major)
+Scale.notes!(~n[C4], :major)
 # => [~n[C4], ~n[D4], ~n[E4], ~n[F4], ~n[G4], ~n[A4], ~n[B4]]
 
-Notex.Scale.notes!(~n[A4], :minor)
+Scale.notes!(~n[A4], :minor)
 # => [~n[A4], ~n[B4], ~n[C5], ~n[D5], ~n[E5], ~n[F5], ~n[G5]]
+```
+
+### Chords
+
+Build chord notes from a base note with `Chord.notes/2`:
+
+```elixir
+use Notex
+
+Chord.notes(Chord.major7(), ~n[C4])
+# => {:ok, [~n[C4], ~n[E4], ~n[G4], ~n[B4]]}
+
+c9sus4 =
+  Chord.dominant7()
+  |> Chord.sus4()
+  |> Chord.add9()
+
+Chord.notes(c9sus4, ~n[C4])
+# => {:ok, [~n[C4], ~n[F4], ~n[G4], ~n[A#4], ~n[D5]]}
 ```
 
 ### Custom Scale Types
@@ -85,12 +104,12 @@ defmodule MyApp.MinorPentatonic do
   @behaviour Notex.ScaleType
 
   def name, do: "minor pentatonic"
-  def relative_notes, do: [:one, :flat_three, :four, :five, :flat_seven]
+  def intervals, do: [:one, :flat_three, :four, :five, :flat_seven]
 end
 
-import Notex.Note
+use Notex
 
-Notex.Scale.notes!(~n[A4], MyApp.MinorPentatonic)
+Scale.notes!(~n[A4], MyApp.MinorPentatonic)
 # => [~n[A4], ~n[C5], ~n[D5], ~n[E5], ~n[G5]]
 ```
 
@@ -109,7 +128,6 @@ mix deps.get
 
 mix test
 ```
-
 
 You can run the full CI suite with either:
 

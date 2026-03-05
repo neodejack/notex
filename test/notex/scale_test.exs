@@ -1,7 +1,6 @@
 defmodule Notex.ScaleTest do
   use ExUnit.Case, async: true
-
-  import Notex.Note
+  use Notex
 
   alias Notex.Scale
   alias Notex.ScaleType
@@ -56,7 +55,7 @@ defmodule Notex.ScaleTest do
       @behaviour ScaleType
 
       def name, do: "minor pentatonic"
-      def relative_notes, do: [:one, :flat_three, :four, :five, :flat_seven]
+      def intervals, do: [:one, :flat_three, :four, :five, :flat_seven]
     end
 
     test "full module name" do

@@ -25,7 +25,26 @@ defmodule Notex.Constant do
     "E#" => {"F", 0}
   }
 
-  @relatives %{
+  @type interval_id() ::
+          :one
+          | :sharp_one
+          | :flat_two
+          | :two
+          | :sharp_two
+          | :flat_three
+          | :three
+          | :four
+          | :sharp_four
+          | :flat_five
+          | :five
+          | :sharp_five
+          | :flat_six
+          | :six
+          | :sharp_six
+          | :flat_seven
+          | :seven
+
+  @intervals %{
     one: [semitones: 0, name: "1"],
     sharp_one: [semitones: 1, name: "#1"],
     flat_two: [semitones: 1, name: "b2"],
@@ -45,11 +64,16 @@ defmodule Notex.Constant do
     seven: [semitones: 11, name: "7"]
   }
 
-  @relative_semitones Map.new(@relatives, fn {k, v} -> {k, v[:semitones]} end)
-  @relative_names Map.new(@relatives, fn {k, v} -> {k, v[:name]} end)
+  @interval_ids Map.keys(@intervals)
+  @interval_semitones Map.new(@intervals, fn {k, v} -> {k, v[:semitones]} end)
+  @interval_names Map.new(@intervals, fn {k, v} -> {k, v[:name]} end)
 
-  def relative_semitones, do: @relative_semitones
-  def relative_names, do: @relative_names
+  defguard is_interval(value) when is_atom(value) and value in @interval_ids
+
+  def interval_ids, do: @interval_ids
+  def intervals, do: @intervals
+  def interval_semitones, do: @interval_semitones
+  def interval_names, do: @interval_names
   def all_note_names, do: @all_note_names
   def all_octaves, do: @all_octaves
   def flat_to_sharp_map, do: @flat_to_sharp_map

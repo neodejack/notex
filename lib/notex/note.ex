@@ -9,15 +9,15 @@ defmodule Notex.Note do
 
   ## Creating Notes
 
-  Use `new/2`, `parse/1`, or the `~n` sigil (available via `import Notex.Note`):
+  Use `new/2`, `parse/1`, or the `~n` sigil (available via `use Notex`):
 
-      iex> Notex.Note.new("C", 4)
+      iex> use Notex
+      iex> Note.new("C", 4)
       {:ok, ~n[C4]}
 
-      iex> Notex.Note.parse("Ab3")
+      iex> Note.parse("Ab3")
       {:ok, ~n[G#3]}
 
-      iex> import Notex.Note
       iex> ~n[F#5]
       ~n[F#5]
 
@@ -62,13 +62,14 @@ defmodule Notex.Note do
 
   ## Examples
 
-      iex> Notex.Note.new("C", 4)
+      iex> use Notex
+      iex> Note.new("C", 4)
       {:ok, ~n[C4]}
 
-      iex> Notex.Note.new("Ab", 3)
+      iex> Note.new("Ab", 3)
       {:ok, ~n[G#3]}
 
-      iex> Notex.Note.new("B#", 3)
+      iex> Note.new("B#", 3)
       {:ok, ~n[C4]}
   """
   @spec new(String.t(), integer()) :: {:ok, t()} | {:error, String.t()}
@@ -93,12 +94,12 @@ defmodule Notex.Note do
 
   ## Examples
 
-      iex> import Notex.Note
-      iex> equal?(~n[C4], ~n[C4])
+      iex> use Notex
+      iex> Note.equal?(~n[C4], ~n[C4])
       true
-      iex> equal?(~n[C4], ~n[D4])
+      iex> Note.equal?(~n[C4], ~n[D4])
       false
-      iex> equal?(~n[B#3], ~n[C4])
+      iex> Note.equal?(~n[B#3], ~n[C4])
       true
 
   """
@@ -155,12 +156,12 @@ defmodule Notex.Note do
   @doc """
   Sigil for creating notes inline.
 
-  Import `Notex.Note` to use the `~n` sigil. The sigil parses a note string
+  `use Notex` to get the `~n` sigil. The sigil parses a note string
   and raises on invalid input.
 
   ## Examples
 
-      iex> import Notex.Note
+      iex> use Notex
 
       iex> ~n[C4]
       ~n[C4]
@@ -197,16 +198,17 @@ defmodule Notex.Note do
 
   ## Examples
 
-      iex> Notex.Note.parse("C4")
+      iex> use Notex
+      iex> Note.parse("C4")
       {:ok, ~n[C4]}
 
-      iex> Notex.Note.parse("Ab3")
+      iex> Note.parse("Ab3")
       {:ok, ~n[G#3]}
 
-      iex> Notex.Note.parse("B#3")
+      iex> Note.parse("B#3")
       {:ok, ~n[C4]}
 
-      iex> {:error, _reason} = Notex.Note.parse("H1")
+      iex> {:error, _reason} = Note.parse("H1")
 
   """
   @spec parse(binary()) :: {:ok, t()} | {:error, String.t()}
@@ -233,11 +235,12 @@ defmodule Notex.Note do
 
   ## Examples
 
-      iex> Notex.Note.compare(~n[D4], ~n[C4])
+      iex> use Notex
+      iex> Note.compare(~n[D4], ~n[C4])
       :gt
-      iex> Notex.Note.compare(~n[C4], ~n[C4])
+      iex> Note.compare(~n[C4], ~n[C4])
       :eq
-      iex> Notex.Note.compare(~n[C4], ~n[D4])
+      iex> Note.compare(~n[C4], ~n[D4])
       :lt
 
   """
