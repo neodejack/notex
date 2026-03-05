@@ -23,46 +23,53 @@ defmodule Notex.Chord do
   @spec add(t(), Constant.relative_atoms(), octave_move()) :: t()
   def add(%Chord{notes: notes} = chord, relative, octave_move) do
     updated_notes =
-      Keyword.update(notes, relative, [octave_move], &(&1 ++ [octave_move]))
+      Keyword.update(notes, relative, [octave_move], &Enum.uniq([octave_move | &1]))
 
     %{chord | notes: updated_notes}
   end
 
   @spec omit(t(), Constant.relative_atoms(), octave_move()) :: t()
-  def omit(%Chord{} = chord, relative, octave_move) do
-    chord
+  def omit(%Chord{notes: notes} = chord, relative, octave_move) do
+    case Keyword.fetch(notes, relative) do
+      :error ->
+        chord
+
+      {:ok, octave_moves} ->
+        case List.delete(octave_moves, octave_move) do
+          [] -> %{chord | notes: Keyword.delete(notes, relative)}
+          remaining_moves -> %{chord | notes: Keyword.put(notes, relative, remaining_moves)}
+        end
+    end
   end
 
   @spec notes(t()) :: {:ok, [Note.t()]} | {:error, binary()}
   def notes(%Chord{base_note: base_note, notes: notes}) do
+    relative_semitones = Constant.relative_semitones()
+
     semitones =
-      for {relative, octacve_move} <- notes do
-        Map.fetch!(Constant.relative_semitones(), relative) + octave_semitones(octacve_move)
+      for {relative, octave_moves} <- notes,
+          octave_move <- Enum.reverse(octave_moves) do
+        {Map.fetch!(relative_semitones, relative) + octave_semitones(octave_move), {relative, octave_move}}
       end
 
-    {notes, ok?} =
-      Enum.map_reduce(semitones, true, fn
-        semitone, true ->
-          case Note.transpose(base_note, semitone) do
-            {:ok, note} -> {note, true}
-            {:error, _msg} -> {nil, false}
-          end
+    semitones
+    |> Enum.reduce_while({:ok, []}, fn {semitone, {relative, octave_move}}, {:ok, acc} ->
+      case Note.transpose(base_note, semitone) do
+        {:ok, note} ->
+          {:cont, {:ok, [note | acc]}}
 
-        _, false ->
-          {nil, false}
-      end)
-
-    if ok? do
-      {:ok, notes}
-    else
-      {:error, "error when building notes"}
-    end
+        {:error, reason} ->
+          error = "failed to build note for #{inspect({relative, octave_move})}: #{reason}"
+          {:halt, {:error, error}}
+      end
+    end)
+    |> then(fn
+      {:ok, built_notes} -> {:ok, Enum.reverse(built_notes)}
+      {:error, reason} -> {:error, reason}
+    end)
   end
 
-  defp transform_notes do
-  end
-
-  def octave_semitones(octave) when is_integer(octave) do
+  defp octave_semitones(octave) when is_integer(octave) do
     octave * 12
   end
 
