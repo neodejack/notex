@@ -44,7 +44,7 @@ defmodule Notex.MixProject do
       main: "readme",
       extras: ["README.md", "CHANGELOG.md"],
       groups_for_modules: [
-        Core: [Notex.Note, Notex.Scale, Notex.ScaleType],
+        Core: [Notex.Note, Notex.Chord, Notex.Scale, Notex.ScaleType, Notex.Types],
         "Built-in Scale Types": [Notex.ScaleType.Major, Notex.ScaleType.Minor]
       ]
     ]
