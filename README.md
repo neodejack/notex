@@ -85,7 +85,7 @@ defmodule MyApp.MinorPentatonic do
   @behaviour Notex.ScaleType
 
   def name, do: "minor pentatonic"
-  def relative_notes, do: [:one, :flat_three, :four, :five, :flat_seven]
+  def intervals, do: [:one, :flat_three, :four, :five, :flat_seven]
 end
 
 import Notex.Note

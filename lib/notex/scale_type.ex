@@ -2,7 +2,7 @@ defmodule Notex.ScaleType do
   @moduledoc """
   Behaviour for defining musical scale types.
 
-  A scale type defines the interval pattern of a scale using relative note names
+  A scale type defines the interval pattern of a scale using interval note names
   (e.g. `:one`, `:three`, `:five`). Implement this behaviour to create custom
   scale types that can be used with `Notex.Scale.notes/2`.
 
@@ -13,13 +13,13 @@ defmodule Notex.ScaleType do
 
   ## Defining a Custom Scale Type
 
-  Implement the `c:name/0` and `c:relative_notes/0` callbacks:
+  Implement the `c:name/0` and `c:intervals/0` callbacks:
 
       defmodule MyApp.MajorPentatonic do
         @behaviour Notex.ScaleType
 
         def name, do: "major pentatonic"
-        def relative_notes, do: [:one, :two, :three, :five, :six]
+        def intervals, do: [:one, :two, :three, :five, :six]
       end
 
   Then you can use it with `Notex.Scale`:
@@ -35,7 +35,7 @@ defmodule Notex.ScaleType do
   @callback name() :: String.t()
 
   @doc """
-  Returns the list of relative note atoms defining the scale's interval pattern.
+  Returns the list of interval note atoms defining the scale's interval pattern.
 
   Available atoms to use in the callback
 
@@ -59,23 +59,23 @@ defmodule Notex.ScaleType do
   | `:flat_seven`    | 10        | b7        |
   | `:seven`         | 11        | 7         |
   """
-  @callback relative_notes() :: [Constant.relative_atoms()]
+  @callback intervals() :: [Constant.interval_id()]
 
-  # TODO: see if there is a way to emit warning if user custom_scale_type.relative_notes() not in Constant.relative_notes() |> Map.keys()
+  # TODO: see if there is a way to emit warning if user custom_scale_type.intervals() not in Constant.intervals() |> Map.keys()
 
   @doc """
-  Returns the relative note name strings for the given `scale_type` module.
+  Returns the interval note name strings for the given `scale_type` module.
 
   ## Examples
 
-      iex> Notex.ScaleType.relative_notes(Notex.ScaleType.Major)
+      iex> Notex.ScaleType.intervals(Notex.ScaleType.Major)
       ["1", "2", "3", "4", "5", "6", "7"]
 
   """
-  @spec relative_notes(module()) :: [binary()]
-  def relative_notes(scale_type) when is_atom(scale_type) do
-    for r <- scale_type.relative_notes() do
-      Map.fetch!(Constant.relative_names(), r)
+  @spec intervals(module()) :: [binary()]
+  def intervals(scale_type) when is_atom(scale_type) do
+    for r <- scale_type.intervals() do
+      Map.fetch!(Constant.interval_names(), r)
     end
   end
 
@@ -84,14 +84,14 @@ defmodule Notex.ScaleType do
 
   ## Examples
 
-      iex> Notex.ScaleType.relative_semitones(Notex.ScaleType.Major)
+      iex> Notex.ScaleType.interval_semitones(Notex.ScaleType.Major)
       [0, 2, 4, 5, 7, 9, 11]
 
   """
-  @spec relative_semitones(module()) :: [integer()]
-  def relative_semitones(scale_type) when is_atom(scale_type) do
-    for r <- scale_type.relative_notes() do
-      Map.fetch!(Constant.relative_semitones(), r)
+  @spec interval_semitones(module()) :: [integer()]
+  def interval_semitones(scale_type) when is_atom(scale_type) do
+    for r <- scale_type.intervals() do
+      Map.fetch!(Constant.interval_semitones(), r)
     end
   end
 end

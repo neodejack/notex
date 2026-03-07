@@ -12,7 +12,7 @@
 Elixir library (no Phoenix/Ecto/DB) for music theory: notes, scales, and scale types.
 - `Notex.Note` — core struct (`note_name`, `octave`); parsing, transposition, comparison, `~n` sigil
 - `Notex.Scale` — builds scale note lists from a tonic `Note` + a `ScaleType` module
-- `Notex.ScaleType` — behaviour (`name/0`, `relative_notes/0`); built-in impls in `scale_type/`
+- `Notex.ScaleType` — behaviour (`name/0`, `intervals/0`); built-in impls in `scale_type/`
 - `Notex.Constant` — module-attribute lookup tables for note names, semitones, enharmonics
 
 ## Code Style

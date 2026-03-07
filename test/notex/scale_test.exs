@@ -56,7 +56,7 @@ defmodule Notex.ScaleTest do
       @behaviour ScaleType
 
       def name, do: "minor pentatonic"
-      def relative_notes, do: [:one, :flat_three, :four, :five, :flat_seven]
+      def intervals, do: [:one, :flat_three, :four, :five, :flat_seven]
     end
 
     test "full module name" do

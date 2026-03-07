@@ -51,7 +51,7 @@ defmodule Notex.Scale do
          {:ok, all_notes} <- all_notes_from_tonic(tonic) do
       notes =
         resolved
-        |> ScaleType.relative_semitones()
+        |> ScaleType.interval_semitones()
         |> take_scale_note(all_notes)
 
       {:ok, notes}
