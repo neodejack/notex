@@ -4,62 +4,61 @@ defmodule Notex.Chord do
   alias Notex.Constant
   alias Notex.Note
 
-  ## octave is any integer between -10..10
-  @type octave_move() :: integer()
+  @type octave_offset() :: integer()
 
   @type t() :: %Chord{
           base_note: Note.t(),
-          intervals: [{Constant.interval_id(), [octave_move()]}]
+          voicings: [{Constant.interval_id(), [octave_offset()]}]
         }
 
-  @enforce_keys [:base_note, :intervals]
-  defstruct [:base_note, :intervals]
+  @enforce_keys [:base_note, :voicings]
+  defstruct [:base_note, :voicings]
 
   @spec new(Note.t()) :: t()
   def new(%Note{} = base_note) do
-    add(%Chord{base_note: base_note, intervals: []}, :one, 0)
+    add(%Chord{base_note: base_note, voicings: []}, :one, 0)
   end
 
-  @spec add(t(), Constant.interval_id(), octave_move()) :: t()
-  def add(%Chord{intervals: intervals} = chord, interval, octave_move) do
-    updated_intervals =
-      Keyword.update(intervals, interval, [octave_move], &Enum.uniq([octave_move | &1]))
+  @spec add(t(), Constant.interval_id(), octave_offset()) :: t()
+  def add(%Chord{voicings: voicings} = chord, interval, octave_offset) do
+    updated_voicings =
+      Keyword.update(voicings, interval, [octave_offset], &Enum.uniq([octave_offset | &1]))
 
-    %{chord | intervals: updated_intervals}
+    %{chord | voicings: updated_voicings}
   end
 
-  @spec omit(t(), Constant.interval_id(), octave_move()) :: t()
-  def omit(%Chord{intervals: intervals} = chord, interval, octave_move) do
-    case Keyword.fetch(intervals, interval) do
+  @spec omit(t(), Constant.interval_id(), octave_offset()) :: t()
+  def omit(%Chord{voicings: voicings} = chord, interval, octave_offset) do
+    case Keyword.fetch(voicings, interval) do
       :error ->
         chord
 
-      {:ok, octave_moves} ->
-        case List.delete(octave_moves, octave_move) do
-          [] -> %{chord | intervals: Keyword.delete(intervals, interval)}
-          remaining_moves -> %{chord | intervals: Keyword.put(intervals, interval, remaining_moves)}
+      {:ok, octave_offsets} ->
+        case List.delete(octave_offsets, octave_offset) do
+          [] -> %{chord | voicings: Keyword.delete(voicings, interval)}
+          remaining_offsets -> %{chord | voicings: Keyword.put(voicings, interval, remaining_offsets)}
         end
     end
   end
 
   @spec notes(t()) :: {:ok, [Note.t()]} | {:error, binary()}
-  def notes(%Chord{base_note: base_note, intervals: intervals}) do
+  def notes(%Chord{base_note: base_note, voicings: voicings}) do
     interval_semitones = Constant.interval_semitones()
 
     semitones =
-      for {interval, octave_moves} <- intervals,
-          octave_move <- Enum.reverse(octave_moves) do
-        {Map.fetch!(interval_semitones, interval) + octave_semitones(octave_move), {interval, octave_move}}
+      for {interval, octave_offsets} <- voicings,
+          octave_offset <- Enum.reverse(octave_offsets) do
+        {Map.fetch!(interval_semitones, interval) + octave_semitones(octave_offset), {interval, octave_offset}}
       end
 
     semitones
-    |> Enum.reduce_while({:ok, []}, fn {semitone, {interval, octave_move}}, {:ok, acc} ->
+    |> Enum.reduce_while({:ok, []}, fn {semitone, {interval, octave_offset}}, {:ok, acc} ->
       case Note.transpose(base_note, semitone) do
         {:ok, note} ->
           {:cont, {:ok, [note | acc]}}
 
         {:error, reason} ->
-          error = "failed to build note for #{inspect({interval, octave_move})}: #{reason}"
+          error = "failed to build note for #{inspect({interval, octave_offset})}: #{reason}"
           {:halt, {:error, error}}
       end
     end)
