@@ -7,12 +7,10 @@ defmodule Notex.ChordTest do
   test "basic test" do
     chord =
       new()
-      |> add_interval(:one)
-      |> add_interval(:three)
-      |> add_interval(:five)
+      |> add_intervals([:one, :three, :five])
       |> set_voicing(:one, [-1, 0])
-      |> omit_interval(:three)
-      |> add_interval(:four)
+      |> omit_intervals(:three)
+      |> add_intervals(:four)
 
     chord
     |> build()

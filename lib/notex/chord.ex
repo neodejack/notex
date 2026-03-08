@@ -8,10 +8,7 @@ defmodule Notex.Chord do
 
   @type octave_offset() :: integer()
 
-  @type t() :: %Chord{
-          voicings: [{Constant.interval_id(), [octave_offset()]}],
-          steps: [chord_step()]
-        }
+  @type t() :: %Chord{voicings: [{Constant.interval_id(), [octave_offset()]}], steps: [chord_step()]}
 
   @enforce_keys [:voicings, :steps]
   defstruct [:voicings, :steps]
@@ -34,9 +31,22 @@ defmodule Notex.Chord do
     }
   end
 
+  @spec append_step(
+          t(),
+          chord_step()
+        ) :: t()
+  def append_step(chord, step) do
+    %{
+      chord
+      | steps: [step | chord.steps]
+    }
+  end
+
   @spec build(t()) :: {:ok, t()} | {:error, binary()}
   def build(%Chord{steps: steps}) do
-    Enum.reduce_while(steps, {:ok, new()}, fn step, {:ok, chord_acc} ->
+    steps
+    |> Enum.reverse()
+    |> Enum.reduce_while({:ok, new()}, fn step, {:ok, chord_acc} ->
       case run_step(step, chord_acc) do
         {:ok, %Chord{} = chord} -> {:cont, {:ok, chord}}
         {:error, msg} when is_binary(msg) -> {:halt, {:error, msg}}
@@ -49,8 +59,18 @@ defmodule Notex.Chord do
     step.(state)
   end
 
-  @spec add_interval(t(), Constant.interval_id()) :: t()
-  def add_interval(%Chord{} = chord, interval) do
+  @spec add_intervals(t(), [Constant.interval_id()] | Constant.interval_id()) :: t()
+  def add_intervals(%Chord{} = chord, []) do
+    chord
+  end
+
+  def add_intervals(%Chord{} = chord, [interval | rest]) do
+    chord
+    |> append_step(&add_interval_step(&1, interval))
+    |> add_intervals(rest)
+  end
+
+  def add_intervals(%Chord{} = chord, interval) do
     append_steps(chord, [&add_interval_step(&1, interval)])
   end
 
@@ -58,13 +78,23 @@ defmodule Notex.Chord do
     if Keyword.has_key?(voicings, interval) do
       chord
     else
-      %{chord | voicings: voicings ++ [{interval, [0]}]}
+      %{chord | voicings: [{interval, [0]} | voicings]}
     end
   end
 
-  @spec omit_interval(t(), Constant.interval_id()) :: t()
-  def omit_interval(%Chord{} = chord, interval) do
-    append_steps(chord, [&omit_interval_step(&1, interval)])
+  @spec omit_intervals(t(), [Constant.interval_id()] | Constant.interval_id()) :: t()
+  def omit_intervals(%Chord{} = chord, []) do
+    chord
+  end
+
+  def omit_intervals(%Chord{} = chord, [interval | rest]) do
+    chord
+    |> append_step(&omit_interval_step(&1, interval))
+    |> omit_intervals(rest)
+  end
+
+  def omit_intervals(%Chord{} = chord, interval) do
+    append_step(chord, &omit_interval_step(&1, interval))
   end
 
   defp omit_interval_step(%Chord{voicings: voicings} = chord, interval) do
@@ -73,7 +103,7 @@ defmodule Notex.Chord do
 
   @spec set_voicing(t(), Constant.interval_id(), [octave_offset()]) :: t()
   def set_voicing(%Chord{} = chord, interval, voicing) do
-    append_steps(chord, [&set_voicing_step(&1, interval, voicing)])
+    append_step(chord, &set_voicing_step(&1, interval, voicing))
   end
 
   defp set_voicing_step(%Chord{voicings: voicings} = chord, interval, voicing) do
