@@ -24,5 +24,18 @@ defmodule Notex do
       # Build a C major scale
       Notex.Scale.notes!(~n[C4], :major)
       #=> [~n[C4], ~n[D4], ~n[E4], ~n[F4], ~n[G4], ~n[A4], ~n[B4]]
+
+  ## Usage
+
+      use Notex
+
+  This imports the `~n` sigil and the `is_interval/1` guard.
   """
+
+  defmacro __using__(_opts) do
+    quote do
+      import Notex.Note, only: [sigil_n: 2]
+      import Notex.Constant, only: [is_interval: 1]
+    end
+  end
 end

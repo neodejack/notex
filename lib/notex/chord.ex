@@ -1,5 +1,7 @@
 defmodule Notex.Chord do
   @moduledoc false
+  use Notex
+
   alias __MODULE__
   alias Notex.Constant
   alias Notex.Note
@@ -64,13 +66,13 @@ defmodule Notex.Chord do
     chord
   end
 
-  def add_intervals(%Chord{} = chord, [interval | rest]) do
+  def add_intervals(%Chord{} = chord, [interval | rest]) when is_interval(interval) do
     chord
     |> append_step(&add_interval_step(&1, interval))
     |> add_intervals(rest)
   end
 
-  def add_intervals(%Chord{} = chord, interval) do
+  def add_intervals(%Chord{} = chord, interval) when is_interval(interval) do
     append_steps(chord, [&add_interval_step(&1, interval)])
   end
 
@@ -87,13 +89,13 @@ defmodule Notex.Chord do
     chord
   end
 
-  def omit_intervals(%Chord{} = chord, [interval | rest]) do
+  def omit_intervals(%Chord{} = chord, [interval | rest]) when is_interval(interval) do
     chord
     |> append_step(&omit_interval_step(&1, interval))
     |> omit_intervals(rest)
   end
 
-  def omit_intervals(%Chord{} = chord, interval) do
+  def omit_intervals(%Chord{} = chord, interval) when is_interval(interval) do
     append_step(chord, &omit_interval_step(&1, interval))
   end
 
@@ -102,7 +104,7 @@ defmodule Notex.Chord do
   end
 
   @spec set_voicing(t(), Constant.interval_id(), [octave_offset()]) :: t()
-  def set_voicing(%Chord{} = chord, interval, voicing) do
+  def set_voicing(%Chord{} = chord, interval, voicing) when is_interval(interval) do
     append_step(chord, &set_voicing_step(&1, interval, voicing))
   end
 
@@ -116,12 +118,10 @@ defmodule Notex.Chord do
 
   @spec notes(t(), Note.t()) :: {:ok, [Note.t()]} | {:error, binary()}
   def notes(%Chord{voicings: voicings}, %Note{} = base_note) do
-    interval_semitones = Constant.interval_semitones()
-
     semitones =
       for {interval, octave_offsets} <- voicings,
           octave_offset <- Enum.reverse(octave_offsets) do
-        {Map.fetch!(interval_semitones, interval) + octave_semitones(octave_offset), {interval, octave_offset}}
+        {Map.fetch!(Constant.interval_semitones(), interval) + octave_semitones(octave_offset), {interval, octave_offset}}
       end
 
     semitones

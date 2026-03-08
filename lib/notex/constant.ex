@@ -64,9 +64,13 @@ defmodule Notex.Constant do
     seven: [semitones: 11, name: "7"]
   }
 
+  @interval_ids Map.keys(@intervals)
   @interval_semitones Map.new(@intervals, fn {k, v} -> {k, v[:semitones]} end)
   @interval_names Map.new(@intervals, fn {k, v} -> {k, v[:name]} end)
 
+  defguard is_interval(value) when is_atom(value) and value in @interval_ids
+
+  def interval_ids, do: @interval_ids
   def intervals, do: @intervals
   def interval_semitones, do: @interval_semitones
   def interval_names, do: @interval_names
