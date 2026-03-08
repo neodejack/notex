@@ -12,7 +12,7 @@ defmodule Notex do
 
   ## Quick Example
 
-      import Notex.Note
+      use Notex
 
       # Create a note with the ~n sigil
       note = ~n[C4]

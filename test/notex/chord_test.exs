@@ -1,8 +1,9 @@
 defmodule Notex.ChordTest do
   use ExUnit.Case, async: true
 
+  use Notex
+
   import Notex.Chord
-  import Notex.Note
 
   test "basic test" do
     chord =

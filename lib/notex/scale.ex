@@ -8,7 +8,7 @@ defmodule Notex.Scale do
 
   ## Examples
 
-      iex> import Notex.Note
+      iex> use Notex
       iex> Notex.Scale.notes!(~n[C4], :major)
       [~n[C4], ~n[D4], ~n[E4], ~n[F4], ~n[G4], ~n[A4], ~n[B4]]
       iex> Notex.Scale.notes!(~n[A4], :minor)
@@ -63,7 +63,7 @@ defmodule Notex.Scale do
 
   ## Examples
 
-      iex> import Notex.Note
+      iex> use Notex
       iex> Notex.Scale.notes!(~n[C4], :major)
       [~n[C4], ~n[D4], ~n[E4], ~n[F4], ~n[G4], ~n[A4], ~n[B4]]
 

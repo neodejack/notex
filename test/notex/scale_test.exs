@@ -1,7 +1,7 @@
 defmodule Notex.ScaleTest do
   use ExUnit.Case, async: true
 
-  import Notex.Note
+  use Notex
 
   alias Notex.Scale
   alias Notex.ScaleType

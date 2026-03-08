@@ -1,8 +1,9 @@
 defmodule Notex.NoteTest do
   use ExUnit.Case, async: true
 
-  import Notex.Note
+  use Notex
 
+  import Notex.Note
   alias Notex.Note
 
   doctest Note

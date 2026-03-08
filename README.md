@@ -34,7 +34,7 @@ end
 Create notes with `Notex.Note.new/2` or the `~n` sigil:
 
 ```elixir
-import Notex.Note
+use Notex
 
 note = ~n[C4]
 # => ~n[C4]
@@ -53,7 +53,7 @@ Parse note strings:
 Transpose notes by semitones:
 
 ```elixir
-import Notex.Note
+use Notex
 
 Notex.Note.transpose!(~n[C4], 7)
 # => ~n[G4]
@@ -67,7 +67,7 @@ Notex.Note.transpose!(~n[B4], 1)
 Build scales from a tonic note and a scale type:
 
 ```elixir
-import Notex.Note
+use Notex
 
 Notex.Scale.notes!(~n[C4], :major)
 # => [~n[C4], ~n[D4], ~n[E4], ~n[F4], ~n[G4], ~n[A4], ~n[B4]]
@@ -88,7 +88,7 @@ defmodule MyApp.MinorPentatonic do
   def intervals, do: [:one, :flat_three, :four, :five, :flat_seven]
 end
 
-import Notex.Note
+use Notex
 
 Notex.Scale.notes!(~n[A4], MyApp.MinorPentatonic)
 # => [~n[A4], ~n[C5], ~n[D5], ~n[E5], ~n[G5]]

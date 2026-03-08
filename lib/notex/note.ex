@@ -9,7 +9,7 @@ defmodule Notex.Note do
 
   ## Creating Notes
 
-  Use `new/2`, `parse/1`, or the `~n` sigil (available via `import Notex.Note`):
+  Use `new/2`, `parse/1`, or the `~n` sigil (available via `use Notex`):
 
       iex> Notex.Note.new("C", 4)
       {:ok, ~n[C4]}
@@ -17,7 +17,7 @@ defmodule Notex.Note do
       iex> Notex.Note.parse("Ab3")
       {:ok, ~n[G#3]}
 
-      iex> import Notex.Note
+      iex> use Notex
       iex> ~n[F#5]
       ~n[F#5]
 
@@ -93,12 +93,12 @@ defmodule Notex.Note do
 
   ## Examples
 
-      iex> import Notex.Note
-      iex> equal?(~n[C4], ~n[C4])
+      iex> use Notex
+      iex> Notex.Note.equal?(~n[C4], ~n[C4])
       true
-      iex> equal?(~n[C4], ~n[D4])
+      iex> Notex.Note.equal?(~n[C4], ~n[D4])
       false
-      iex> equal?(~n[B#3], ~n[C4])
+      iex> Notex.Note.equal?(~n[B#3], ~n[C4])
       true
 
   """
@@ -155,12 +155,12 @@ defmodule Notex.Note do
   @doc """
   Sigil for creating notes inline.
 
-  Import `Notex.Note` to use the `~n` sigil. The sigil parses a note string
+  `use Notex` to get the `~n` sigil. The sigil parses a note string
   and raises on invalid input.
 
   ## Examples
 
-      iex> import Notex.Note
+      iex> use Notex
 
       iex> ~n[C4]
       ~n[C4]
