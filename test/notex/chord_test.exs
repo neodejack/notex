@@ -2,6 +2,7 @@ defmodule Notex.ChordTest do
   use ExUnit.Case, async: true
 
   import Notex.Chord
+  import Notex.Note
 
   test "basic test" do
     chord =
@@ -15,6 +16,7 @@ defmodule Notex.ChordTest do
 
     chord
     |> build()
+    |> then(fn {:ok, chord} -> notes(chord, ~n/C4/) end)
     |> dbg()
 
     chord
