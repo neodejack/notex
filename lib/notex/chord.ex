@@ -38,6 +38,29 @@ defmodule Notex.Chord do
     step.(state)
   end
 
+  @spec add_interval(t(), Constant.interval_id()) :: t()
+  def add_interval(%Chord{voicings: voicings} = chord, interval) do
+    if Keyword.has_key?(voicings, interval) do
+      chord
+    else
+      %{chord | voicings: voicings ++ [{interval, [0]}]}
+    end
+  end
+
+  @spec omit_interval(t(), Constant.interval_id()) :: t()
+  def omit_interval(%Chord{voicings: voicings} = chord, interval) do
+    %{chord | voicings: Keyword.delete(voicings, interval)}
+  end
+
+  @spec set_voicing(t(), Constant.interval_id(), [octave_offset()]) :: {:ok, t()} | {:error, binary()}
+  def set_voicing(%Chord{voicings: voicings} = chord, interval, voicing) do
+    if Keyword.has_key?(voicings, interval) do
+      {:ok, %{chord | voicings: Keyword.put(voicings, interval, voicing)}}
+    else
+      {:error, "interval #{inspect(interval)} does not exist in chord voicings"}
+    end
+  end
+
   @spec notes(t()) :: {:ok, [Note.t()]} | {:error, binary()}
   def notes(%Chord{base_note: base_note, voicings: voicings}) do
     interval_semitones = Constant.interval_semitones()
