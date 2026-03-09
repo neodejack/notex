@@ -22,21 +22,7 @@ defmodule Notex.Chord do
     }
   end
 
-  @spec append_steps(
-          t(),
-          [chord_step()]
-        ) :: t()
-  def append_steps(chord, steps) do
-    %{
-      chord
-      | steps: chord.steps ++ steps
-    }
-  end
-
-  @spec append_step(
-          t(),
-          chord_step()
-        ) :: t()
+  @spec append_step(t(), chord_step()) :: t()
   def append_step(chord, step) do
     %{
       chord
@@ -61,45 +47,44 @@ defmodule Notex.Chord do
     step.(state)
   end
 
-  @spec add_intervals(t(), [Constant.interval_id()] | Constant.interval_id()) :: t()
-  def add_intervals(%Chord{} = chord, []) do
+  @spec put_intervals(t(), [Constant.interval_id()] | Constant.interval_id(), [octave_offset()]) :: t()
+  def put_intervals(chord, intervals, voicing \\ [0])
+
+  def put_intervals(%Chord{} = chord, [], _voicing) do
     chord
   end
 
-  def add_intervals(%Chord{} = chord, [interval | rest]) when is_interval(interval) do
+  def put_intervals(%Chord{} = chord, [interval | rest], voicing) when is_interval(interval) and is_list(voicing) do
     chord
-    |> append_step(&add_interval_step(&1, interval))
-    |> add_intervals(rest)
+    |> append_step(&put_interval_step(&1, interval, voicing))
+    |> put_intervals(rest, voicing)
   end
 
-  def add_intervals(%Chord{} = chord, interval) when is_interval(interval) do
-    append_steps(chord, [&add_interval_step(&1, interval)])
+  def put_intervals(%Chord{} = chord, interval, voicing) when is_interval(interval) and is_list(voicing) do
+    append_step(chord, &put_interval_step(&1, interval, voicing))
   end
 
-  defp add_interval_step(%Chord{voicings: voicings} = chord, interval) do
-    if Keyword.has_key?(voicings, interval) do
-      chord
-    else
-      %{chord | voicings: [{interval, [0]} | voicings]}
-    end
+  defp put_interval_step(%Chord{voicings: voicings} = chord, interval, voicing)
+       when is_interval(interval) and is_list(voicing) do
+    %{chord | voicings: Keyword.put(voicings, interval, voicing)}
   end
 
-  @spec omit_intervals(t(), [Constant.interval_id()] | Constant.interval_id()) :: t()
-  def omit_intervals(%Chord{} = chord, []) do
+  @spec drop_intervals(t(), [Constant.interval_id()] | Constant.interval_id()) :: t()
+  def drop_intervals(%Chord{} = chord, []) do
     chord
   end
 
-  def omit_intervals(%Chord{} = chord, [interval | rest]) when is_interval(interval) do
+  def drop_intervals(%Chord{} = chord, [interval | rest]) when is_interval(interval) do
     chord
-    |> append_step(&omit_interval_step(&1, interval))
-    |> omit_intervals(rest)
+    |> append_step(&drop_interval_step(&1, interval))
+    |> drop_intervals(rest)
   end
 
-  def omit_intervals(%Chord{} = chord, interval) when is_interval(interval) do
-    append_step(chord, &omit_interval_step(&1, interval))
+  def drop_intervals(%Chord{} = chord, interval) when is_interval(interval) do
+    append_step(chord, &drop_interval_step(&1, interval))
   end
 
-  defp omit_interval_step(%Chord{voicings: voicings} = chord, interval) do
+  defp drop_interval_step(%Chord{voicings: voicings} = chord, interval) do
     %{chord | voicings: Keyword.delete(voicings, interval)}
   end
 
