@@ -24,10 +24,7 @@ defmodule Notex.Chord do
 
   @spec append_step(t(), chord_step()) :: t()
   def append_step(chord, step) do
-    %{
-      chord
-      | steps: [step | chord.steps]
-    }
+    %{chord | steps: [step | chord.steps]}
   end
 
   @spec build(t()) :: {:ok, t()} | {:error, binary()}
@@ -88,16 +85,23 @@ defmodule Notex.Chord do
     %{chord | voicings: Keyword.delete(voicings, interval)}
   end
 
-  @spec set_voicing(t(), Constant.interval_id(), [octave_offset()]) :: t()
-  def set_voicing(%Chord{} = chord, interval, voicing) when is_interval(interval) do
-    append_step(chord, &set_voicing_step(&1, interval, voicing))
+  @spec update_voicing(t(), Constant.interval_id(), (existing :: [octave_offset()] -> new :: [octave_offset()])) :: t()
+  def update_voicing(%Chord{} = chord, interval, func) when is_interval(interval) and is_function(func, 1) do
+    append_step(chord, &update_voicing_step(&1, interval, func))
   end
 
-  defp set_voicing_step(%Chord{voicings: voicings} = chord, interval, voicing) do
-    if Keyword.has_key?(voicings, interval) do
-      {:ok, %{chord | voicings: Keyword.put(voicings, interval, voicing)}}
-    else
-      {:error, "interval #{inspect(interval)} does not exist in chord voicings"}
+  defp update_voicing_step(%Chord{voicings: voicings} = chord, interval, func)
+       when is_interval(interval) and is_function(func, 1) do
+    case Keyword.fetch(voicings, interval) do
+      {:ok, interval_octaves} ->
+        {:ok,
+         %{
+           chord
+           | voicings: Keyword.put(voicings, interval, func.(interval_octaves))
+         }}
+
+      :error ->
+        {:error, "interval #{inspect(interval)} does not exist in chord voicings"}
     end
   end
 

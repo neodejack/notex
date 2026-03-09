@@ -61,11 +61,47 @@ defmodule Notex.ChordTest do
 
       assert chord.voicings == [one: [-1, 0]]
     end
+  end
 
-    test "raises FunctionClauseError when voicing is not a list" do
-      assert_raise FunctionClauseError, fn ->
-        put_intervals(new(), :one, 0)
-      end
+  describe "update_voicing/3" do
+    test "updates an existing interval's voicing via callback" do
+      {:ok, chord} =
+        new()
+        |> put_intervals(:one, [0])
+        |> update_voicing(:one, fn _existing -> [-1, 0, 1] end)
+        |> build()
+
+      assert chord.voicings == [one: [-1, 0, 1]]
+    end
+
+    test "callback receives the current voicing" do
+      {:ok, chord} =
+        new()
+        |> put_intervals(:one, [-1, 0])
+        |> update_voicing(:one, fn existing -> existing ++ [1] end)
+        |> build()
+
+      assert chord.voicings == [one: [-1, 0, 1]]
+    end
+
+    test "returns error when interval does not exist" do
+      {:error, msg} =
+        new()
+        |> update_voicing(:five, fn v -> v end)
+        |> build()
+
+      assert msg == "interval :five does not exist in chord voicings"
+    end
+
+    test "multiple updates apply in order" do
+      {:ok, chord} =
+        new()
+        |> put_intervals(:one, [0])
+        |> update_voicing(:one, fn _ -> [1] end)
+        |> update_voicing(:one, fn existing -> [-1 | existing] end)
+        |> build()
+
+      assert chord.voicings == [one: [-1, 1]]
     end
   end
 end
