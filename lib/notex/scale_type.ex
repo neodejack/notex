@@ -13,10 +13,12 @@ defmodule Notex.ScaleType do
 
   ## Defining a Custom Scale Type
 
-  Implement the `c:name/0` and `c:intervals/0` callbacks:
+  Use `use Notex.ScaleType` and implement the `c:name/0` and `c:intervals/0` callbacks.
+  The `use` macro registers a compile-time check that warns if `intervals/0` returns
+  invalid interval atoms.
 
       defmodule MyApp.MajorPentatonic do
-        @behaviour Notex.ScaleType
+        use Notex.ScaleType
 
         def name, do: "major pentatonic"
         def intervals, do: [:one, :two, :three, :five, :six]
@@ -61,7 +63,40 @@ defmodule Notex.ScaleType do
   """
   @callback intervals() :: [Constant.interval_id()]
 
-  # TODO: see if there is a way to emit warning if user custom_scale_type.intervals() not in Constant.intervals() |> Map.keys()
+  @doc """
+  Sets up the `Notex.ScaleType` behaviour and registers a compile-time check
+  that warns if `intervals/0` returns atoms not in `Notex.Constant.interval_ids/0`.
+
+  Use `use Notex.ScaleType` instead of `@behaviour Notex.ScaleType`:
+
+      defmodule MyApp.MajorPentatonic do
+        use Notex.ScaleType
+
+        def name, do: "major pentatonic"
+        def intervals, do: [:one, :two, :three, :five, :six]
+      end
+  """
+  defmacro __using__(_opts) do
+    quote do
+      @behaviour Notex.ScaleType
+      @after_compile {Notex.ScaleType, :__validate_intervals__}
+    end
+  end
+
+  @doc false
+  def __validate_intervals__(env, _bytecode) do
+    module = env.module
+    valid_ids = Constant.interval_ids()
+    intervals = module.intervals()
+    invalid = Enum.reject(intervals, &(&1 in valid_ids))
+
+    if invalid != [] do
+      IO.warn(
+        "#{inspect(module)}.intervals/0 contains invalid interval ids: #{inspect(invalid)}. " <>
+          "Valid ids are: #{inspect(valid_ids)}"
+      )
+    end
+  end
 
   @doc """
   Returns the interval note name strings for the given `scale_type` module.
