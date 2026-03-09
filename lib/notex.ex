@@ -34,8 +34,8 @@ defmodule Notex do
 
   defmacro __using__(_opts) do
     quote do
-      import Notex.Note, only: [sigil_n: 2]
       import Notex.Constant, only: [is_interval: 1]
+      import Notex.Note, only: [sigil_n: 2]
     end
   end
 end
