@@ -23,13 +23,26 @@ defmodule Notex.ChordTest do
       assert chord.voicings == [five: [0], three: [0], one: [0]]
     end
 
+    test "registers one step for list intervals" do
+      chord = put_intervals(new(), :add_triad, [:one, :three, :five])
+
+      assert [{:add_triad, step}] = chord.steps
+      assert is_function(step, 1)
+    end
+
     test "empty list is a no-op" do
-      {:ok, chord} =
+      chord = put_intervals(new(), :add_root, :one)
+
+      nooped = put_intervals(chord, :noop, [])
+
+      assert length(nooped.steps) == length(chord.steps)
+
+      {:ok, built_chord} =
         new()
         |> put_intervals(:noop, [])
         |> build()
 
-      assert chord.voicings == []
+      assert built_chord.voicings == []
     end
 
     test "accepts binary name and converts to atom" do
@@ -61,6 +74,13 @@ defmodule Notex.ChordTest do
       assert chord.voicings == [five: [-1, 0, 1], three: [-1, 0, 1], one: [-1, 0, 1]]
     end
 
+    test "registers one step for list intervals with custom voicing" do
+      chord = put_intervals(new(), :add_triad, [:one, :three, :five], [-1, 0, 1])
+
+      assert [{:add_triad, step}] = chord.steps
+      assert is_function(step, 1)
+    end
+
     test "overwrites an existing interval" do
       {:ok, chord} =
         new()
@@ -78,6 +98,19 @@ defmodule Notex.ChordTest do
         |> build()
 
       assert chord.voicings == [one: [-1, 0]]
+    end
+
+    test "two list calls with same name register one step per call" do
+      chord =
+        new()
+        |> put_intervals(:triad, [:one, :three, :five])
+        |> put_intervals(:triad, [:seven])
+
+      assert 2 == Enum.count(chord.steps, fn {step_name, _step} -> step_name == :triad end)
+
+      {:ok, built_chord} = build(chord)
+
+      assert built_chord.voicings == [seven: [0], five: [0], three: [0], one: [0]]
     end
   end
 
@@ -165,14 +198,28 @@ defmodule Notex.ChordTest do
       assert chord.voicings == [one: [0]]
     end
 
-    test "empty list is a no-op" do
-      {:ok, chord} =
+    test "registers one step for dropping a list of intervals" do
+      chord =
         new()
-        |> put_intervals(:add_root, :one)
+        |> put_intervals(:add_triad, [:one, :three, :five])
+        |> drop_intervals(:strip, [:three, :five])
+
+      assert 1 == Enum.count(chord.steps, fn {step_name, _step} -> step_name == :strip end)
+    end
+
+    test "empty list is a no-op" do
+      chord = put_intervals(new(), :add_root, :one)
+
+      nooped = drop_intervals(chord, :noop, [])
+
+      assert length(nooped.steps) == length(chord.steps)
+
+      {:ok, built_chord} =
+        chord
         |> drop_intervals(:noop, [])
         |> build()
 
-      assert chord.voicings == [one: [0]]
+      assert built_chord.voicings == [one: [0]]
     end
 
     test "accepts binary name and converts to atom" do

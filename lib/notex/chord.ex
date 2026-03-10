@@ -61,16 +61,24 @@ defmodule Notex.Chord do
     chord
   end
 
-  def put_intervals(%Chord{} = chord, name, [interval | rest], voicing)
-      when is_atom(name) and is_interval(interval) and is_list(voicing) do
-    chord
-    |> append_step(name, &put_interval_step(&1, interval, voicing))
-    |> put_intervals(name, rest, voicing)
+  def put_intervals(%Chord{} = chord, name, intervals, voicing)
+      when is_atom(name) and is_list(voicing) and is_list(intervals) do
+    append_step(chord, name, &put_interval_step(&1, intervals, voicing))
   end
 
   def put_intervals(%Chord{} = chord, name, interval, voicing)
-      when is_atom(name) and is_interval(interval) and is_list(voicing) do
+      when is_atom(name) and is_list(voicing) and is_interval(interval) do
     append_step(chord, name, &put_interval_step(&1, interval, voicing))
+  end
+
+  defp put_interval_step(%Chord{} = chord, [], _voicing) do
+    chord
+  end
+
+  defp put_interval_step(%Chord{} = chord, [interval | rest], voicing) when is_interval(interval) and is_list(voicing) do
+    chord
+    |> put_interval_step(interval, voicing)
+    |> put_interval_step(rest, voicing)
   end
 
   defp put_interval_step(%Chord{voicings: voicings} = chord, interval, voicing)
@@ -87,17 +95,25 @@ defmodule Notex.Chord do
     chord
   end
 
-  def drop_intervals(%Chord{} = chord, name, [interval | rest]) when is_atom(name) and is_interval(interval) do
-    chord
-    |> append_step(name, &drop_interval_step(&1, interval))
-    |> drop_intervals(name, rest)
+  def drop_intervals(%Chord{} = chord, name, intervals) when is_atom(name) and is_list(intervals) do
+    append_step(chord, name, &drop_interval_step(&1, intervals))
   end
 
   def drop_intervals(%Chord{} = chord, name, interval) when is_atom(name) and is_interval(interval) do
     append_step(chord, name, &drop_interval_step(&1, interval))
   end
 
-  defp drop_interval_step(%Chord{voicings: voicings} = chord, interval) do
+  defp drop_interval_step(%Chord{} = chord, []) do
+    chord
+  end
+
+  defp drop_interval_step(%Chord{} = chord, [interval | rest]) when is_interval(interval) do
+    chord
+    |> drop_interval_step(interval)
+    |> drop_interval_step(rest)
+  end
+
+  defp drop_interval_step(%Chord{voicings: voicings} = chord, interval) when is_interval(interval) do
     %{chord | voicings: Keyword.delete(voicings, interval)}
   end
 
