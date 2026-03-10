@@ -10,7 +10,12 @@ defmodule Notex.Chord do
 
   @type octave_offset() :: integer()
 
-  @type t() :: %Chord{voicings: [{Constant.interval_id(), [octave_offset()]}], steps: [chord_step()]}
+  @type step_name() :: atom()
+
+  @type t() :: %Chord{
+          voicings: [{Constant.interval_id(), [octave_offset()]}],
+          steps: [{step_name(), chord_step()}]
+        }
 
   @enforce_keys [:voicings, :steps]
   defstruct [:voicings, :steps]
@@ -22,19 +27,19 @@ defmodule Notex.Chord do
     }
   end
 
-  @spec append_step(t(), chord_step()) :: t()
-  def append_step(chord, step) do
-    %{chord | steps: [step | chord.steps]}
+  @spec append_step(t(), step_name(), chord_step()) :: t()
+  def append_step(chord, name, step) when is_atom(name) do
+    %{chord | steps: [{name, step} | chord.steps]}
   end
 
   @spec build(t()) :: {:ok, t()} | {:error, binary()}
   def build(%Chord{steps: steps}) do
     steps
     |> Enum.reverse()
-    |> Enum.reduce_while({:ok, new()}, fn step, {:ok, chord_acc} ->
+    |> Enum.reduce_while({:ok, new()}, fn {name, step}, {:ok, chord_acc} ->
       case run_step(step, chord_acc) do
         {:ok, %Chord{} = chord} -> {:cont, {:ok, chord}}
-        {:error, msg} when is_binary(msg) -> {:halt, {:error, msg}}
+        {:error, msg} when is_binary(msg) -> {:halt, {:error, "error when building step: #{inspect(name)}\n#{msg}"}}
         %Chord{} = chord -> {:cont, {:ok, chord}}
       end
     end)
@@ -44,21 +49,28 @@ defmodule Notex.Chord do
     step.(state)
   end
 
-  @spec put_intervals(t(), [Constant.interval_id()] | Constant.interval_id(), [octave_offset()]) :: t()
-  def put_intervals(chord, intervals, voicing \\ [0])
+  @spec put_intervals(t(), step_name() | binary(), [Constant.interval_id()] | Constant.interval_id(), [octave_offset()]) ::
+          t()
+  def put_intervals(chord, name, intervals, voicing \\ [0])
 
-  def put_intervals(%Chord{} = chord, [], _voicing) do
+  def put_intervals(%Chord{} = chord, name, intervals, voicing) when is_binary(name) do
+    put_intervals(chord, String.to_atom(name), intervals, voicing)
+  end
+
+  def put_intervals(%Chord{} = chord, _name, [], _voicing) do
     chord
   end
 
-  def put_intervals(%Chord{} = chord, [interval | rest], voicing) when is_interval(interval) and is_list(voicing) do
+  def put_intervals(%Chord{} = chord, name, [interval | rest], voicing)
+      when is_atom(name) and is_interval(interval) and is_list(voicing) do
     chord
-    |> append_step(&put_interval_step(&1, interval, voicing))
-    |> put_intervals(rest, voicing)
+    |> append_step(name, &put_interval_step(&1, interval, voicing))
+    |> put_intervals(name, rest, voicing)
   end
 
-  def put_intervals(%Chord{} = chord, interval, voicing) when is_interval(interval) and is_list(voicing) do
-    append_step(chord, &put_interval_step(&1, interval, voicing))
+  def put_intervals(%Chord{} = chord, name, interval, voicing)
+      when is_atom(name) and is_interval(interval) and is_list(voicing) do
+    append_step(chord, name, &put_interval_step(&1, interval, voicing))
   end
 
   defp put_interval_step(%Chord{voicings: voicings} = chord, interval, voicing)
@@ -66,28 +78,45 @@ defmodule Notex.Chord do
     %{chord | voicings: Keyword.put(voicings, interval, voicing)}
   end
 
-  @spec drop_intervals(t(), [Constant.interval_id()] | Constant.interval_id()) :: t()
-  def drop_intervals(%Chord{} = chord, []) do
+  @spec drop_intervals(t(), step_name() | binary(), [Constant.interval_id()] | Constant.interval_id()) :: t()
+  def drop_intervals(%Chord{} = chord, name, intervals) when is_binary(name) do
+    drop_intervals(chord, String.to_atom(name), intervals)
+  end
+
+  def drop_intervals(%Chord{} = chord, _name, []) do
     chord
   end
 
-  def drop_intervals(%Chord{} = chord, [interval | rest]) when is_interval(interval) do
+  def drop_intervals(%Chord{} = chord, name, [interval | rest]) when is_atom(name) and is_interval(interval) do
     chord
-    |> append_step(&drop_interval_step(&1, interval))
-    |> drop_intervals(rest)
+    |> append_step(name, &drop_interval_step(&1, interval))
+    |> drop_intervals(name, rest)
   end
 
-  def drop_intervals(%Chord{} = chord, interval) when is_interval(interval) do
-    append_step(chord, &drop_interval_step(&1, interval))
+  def drop_intervals(%Chord{} = chord, name, interval) when is_atom(name) and is_interval(interval) do
+    append_step(chord, name, &drop_interval_step(&1, interval))
   end
 
   defp drop_interval_step(%Chord{voicings: voicings} = chord, interval) do
     %{chord | voicings: Keyword.delete(voicings, interval)}
   end
 
-  @spec update_voicing(t(), Constant.interval_id(), (existing :: [octave_offset()] -> new :: [octave_offset()])) :: t()
-  def update_voicing(%Chord{} = chord, interval, func) when is_interval(interval) and is_function(func, 1) do
-    append_step(chord, &update_voicing_step(&1, interval, func))
+  @spec update_voicing(
+          t(),
+          step_name() | binary(),
+          Constant.interval_id(),
+          (existing :: [octave_offset()] -> new :: [octave_offset()])
+        ) ::
+          t()
+
+  def update_voicing(%Chord{} = chord, name, interval, func)
+      when is_binary(name) and is_interval(interval) and is_function(func, 1) do
+    update_voicing(chord, String.to_atom(name), interval, func)
+  end
+
+  def update_voicing(%Chord{} = chord, name, interval, func)
+      when is_atom(name) and is_interval(interval) and is_function(func, 1) do
+    append_step(chord, name, &update_voicing_step(&1, interval, func))
   end
 
   defp update_voicing_step(%Chord{voicings: voicings} = chord, interval, func)

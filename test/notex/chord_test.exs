@@ -4,11 +4,11 @@ defmodule Notex.ChordTest do
 
   import Notex.Chord
 
-  describe "put_intervals/2" do
+  describe "put_intervals/3" do
     test "adds a single interval with default voicing" do
       {:ok, chord} =
         new()
-        |> put_intervals(:one)
+        |> put_intervals(:add_root, :one)
         |> build()
 
       assert chord.voicings == [one: [0]]
@@ -17,7 +17,7 @@ defmodule Notex.ChordTest do
     test "adds a list of intervals with default voicing" do
       {:ok, chord} =
         new()
-        |> put_intervals([:one, :three, :five])
+        |> put_intervals(:add_triad, [:one, :three, :five])
         |> build()
 
       assert chord.voicings == [five: [0], three: [0], one: [0]]
@@ -26,18 +26,27 @@ defmodule Notex.ChordTest do
     test "empty list is a no-op" do
       {:ok, chord} =
         new()
-        |> put_intervals([])
+        |> put_intervals(:noop, [])
         |> build()
 
       assert chord.voicings == []
     end
+
+    test "accepts binary name and converts to atom" do
+      {:ok, chord} =
+        new()
+        |> put_intervals("add_root", :one)
+        |> build()
+
+      assert chord.voicings == [one: [0]]
+    end
   end
 
-  describe "put_intervals/3" do
+  describe "put_intervals/4" do
     test "adds a single interval with custom voicing" do
       {:ok, chord} =
         new()
-        |> put_intervals(:one, [-1, 0])
+        |> put_intervals(:add_root, :one, [-1, 0])
         |> build()
 
       assert chord.voicings == [one: [-1, 0]]
@@ -46,7 +55,7 @@ defmodule Notex.ChordTest do
     test "adds a list of intervals with custom voicing" do
       {:ok, chord} =
         new()
-        |> put_intervals([:one, :three, :five], [-1, 0, 1])
+        |> put_intervals(:add_triad, [:one, :three, :five], [-1, 0, 1])
         |> build()
 
       assert chord.voicings == [five: [-1, 0, 1], three: [-1, 0, 1], one: [-1, 0, 1]]
@@ -55,20 +64,29 @@ defmodule Notex.ChordTest do
     test "overwrites an existing interval" do
       {:ok, chord} =
         new()
-        |> put_intervals(:one, [0])
-        |> put_intervals(:one, [-1, 0])
+        |> put_intervals(:add_root, :one, [0])
+        |> put_intervals(:widen_root, :one, [-1, 0])
+        |> build()
+
+      assert chord.voicings == [one: [-1, 0]]
+    end
+
+    test "accepts binary name with custom voicing" do
+      {:ok, chord} =
+        new()
+        |> put_intervals("add_root", :one, [-1, 0])
         |> build()
 
       assert chord.voicings == [one: [-1, 0]]
     end
   end
 
-  describe "update_voicing/3" do
+  describe "update_voicing/4" do
     test "updates an existing interval's voicing via callback" do
       {:ok, chord} =
         new()
-        |> put_intervals(:one, [0])
-        |> update_voicing(:one, fn _existing -> [-1, 0, 1] end)
+        |> put_intervals(:add_root, :one, [0])
+        |> update_voicing(:spread_root, :one, fn _existing -> [-1, 0, 1] end)
         |> build()
 
       assert chord.voicings == [one: [-1, 0, 1]]
@@ -77,31 +95,94 @@ defmodule Notex.ChordTest do
     test "callback receives the current voicing" do
       {:ok, chord} =
         new()
-        |> put_intervals(:one, [-1, 0])
-        |> update_voicing(:one, fn existing -> existing ++ [1] end)
+        |> put_intervals(:add_root, :one, [-1, 0])
+        |> update_voicing(:extend_root, :one, fn existing -> existing ++ [1] end)
         |> build()
 
       assert chord.voicings == [one: [-1, 0, 1]]
     end
 
-    test "returns error when interval does not exist" do
+    test "returns error with step name when interval does not exist" do
       {:error, msg} =
         new()
-        |> update_voicing(:five, fn v -> v end)
+        |> update_voicing(:bad_update, :five, fn v -> v end)
         |> build()
 
-      assert msg == "interval :five does not exist in chord voicings"
+      assert msg ==
+               "error when building step: :bad_update\ninterval :five does not exist in chord voicings"
     end
 
     test "multiple updates apply in order" do
       {:ok, chord} =
         new()
-        |> put_intervals(:one, [0])
-        |> update_voicing(:one, fn _ -> [1] end)
-        |> update_voicing(:one, fn existing -> [-1 | existing] end)
+        |> put_intervals(:add_root, :one, [0])
+        |> update_voicing(:replace, :one, fn _ -> [1] end)
+        |> update_voicing(:prepend, :one, fn existing -> [-1 | existing] end)
         |> build()
 
       assert chord.voicings == [one: [-1, 1]]
+    end
+
+    test "accepts binary name and converts to atom in error" do
+      {:error, msg} =
+        new()
+        |> update_voicing("my_step", :five, fn v -> v end)
+        |> build()
+
+      assert msg ==
+               "error when building step: :my_step\ninterval :five does not exist in chord voicings"
+    end
+
+    test "accepts binary name and converts to atom on success" do
+      {:ok, chord} =
+        new()
+        |> put_intervals(:add_root, :one, [0])
+        |> update_voicing("spread_root", :one, fn _existing -> [-1, 0, 1] end)
+        |> build()
+
+      assert chord.voicings == [one: [-1, 0, 1]]
+    end
+  end
+
+  describe "drop_intervals/3" do
+    test "drops a single interval" do
+      {:ok, chord} =
+        new()
+        |> put_intervals(:add_triad, [:one, :three, :five])
+        |> drop_intervals(:remove_third, :three)
+        |> build()
+
+      assert chord.voicings == [five: [0], one: [0]]
+    end
+
+    test "drops a list of intervals" do
+      {:ok, chord} =
+        new()
+        |> put_intervals(:add_triad, [:one, :three, :five])
+        |> drop_intervals(:strip, [:three, :five])
+        |> build()
+
+      assert chord.voicings == [one: [0]]
+    end
+
+    test "empty list is a no-op" do
+      {:ok, chord} =
+        new()
+        |> put_intervals(:add_root, :one)
+        |> drop_intervals(:noop, [])
+        |> build()
+
+      assert chord.voicings == [one: [0]]
+    end
+
+    test "accepts binary name and converts to atom" do
+      {:ok, chord} =
+        new()
+        |> put_intervals(:add_triad, [:one, :three, :five])
+        |> drop_intervals("remove_third", :three)
+        |> build()
+
+      assert chord.voicings == [five: [0], one: [0]]
     end
   end
 end
