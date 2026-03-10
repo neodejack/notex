@@ -29,10 +29,18 @@ defmodule Notex.ChordTest do
       assert chord.voicings == [five: [0], three: [0], one: [0]]
     end
 
-    test "builds when given an MFA tuple shape" do
-      {:ok, chord} = new({Chord, :minor, []})
+    defmodule CustomShape do
+      @moduledoc false
 
-      assert chord.voicings == [five: [0], flat_three: [0], one: [0]]
+      def power_chord do
+        Chord.put_intervals(Chord.base(), :add_power, [:one, :five])
+      end
+    end
+
+    test "builds when given an MFA tuple shape" do
+      {:ok, chord} = new({Notex.ChordTest.CustomShape, :power_chord, []})
+
+      assert chord.voicings == [five: [0], one: [0]]
     end
 
     test "raises when shape function does not return chord struct" do
@@ -274,6 +282,25 @@ defmodule Notex.ChordTest do
         |> build()
 
       assert chord.voicings == [five: [0], one: [0]]
+    end
+  end
+
+  describe "notes/2" do
+    test "auto-builds pending chord steps before deriving notes" do
+      chord = put_intervals(base(), :add_triad, [:one, :three, :five])
+
+      assert {:ok, notes} = Chord.notes(chord, ~n[C4])
+      assert notes == [~n[G4], ~n[E4], ~n[C4]]
+    end
+
+    test "returns build errors from pending steps" do
+      chord =
+        update_voicing(base(), :bad_update, :five, fn voicing -> voicing end)
+
+      assert {:error, reason} = Chord.notes(chord, ~n[C4])
+
+      assert reason ==
+               "error when building step: :bad_update\ninterval :five does not exist in chord voicings"
     end
   end
 end

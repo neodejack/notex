@@ -186,28 +186,31 @@ defmodule Notex.Chord do
   end
 
   @spec notes(t(), Note.t()) :: {:ok, [Note.t()]} | {:error, binary()}
-  def notes(%Chord{voicings: voicings}, %Note{} = base_note) do
-    semitones =
-      for {interval, octave_offsets} <- voicings,
-          octave_offset <- Enum.reverse(octave_offsets) do
-        {Map.fetch!(Constant.interval_semitones(), interval) + octave_semitones(octave_offset), {interval, octave_offset}}
-      end
+  def notes(%Chord{} = chord, %Note{} = base_note) do
+    with {:ok, %Chord{voicings: voicings}} <- build(chord) do
+      semitones =
+        for {interval, octave_offsets} <- voicings,
+            octave_offset <- Enum.reverse(octave_offsets) do
+          {Map.fetch!(Constant.interval_semitones(), interval) + octave_semitones(octave_offset),
+           {interval, octave_offset}}
+        end
 
-    semitones
-    |> Enum.reduce_while({:ok, []}, fn {semitone, {interval, octave_offset}}, {:ok, acc} ->
-      case Note.transpose(base_note, semitone) do
-        {:ok, note} ->
-          {:cont, {:ok, [note | acc]}}
+      semitones
+      |> Enum.reduce_while({:ok, []}, fn {semitone, {interval, octave_offset}}, {:ok, acc} ->
+        case Note.transpose(base_note, semitone) do
+          {:ok, note} ->
+            {:cont, {:ok, [note | acc]}}
 
-        {:error, reason} ->
-          error = "failed to build note for #{inspect({interval, octave_offset})}: #{reason}"
-          {:halt, {:error, error}}
-      end
-    end)
-    |> then(fn
-      {:ok, built_notes} -> {:ok, Enum.reverse(built_notes)}
-      {:error, reason} -> {:error, reason}
-    end)
+          {:error, reason} ->
+            error = "failed to build note for #{inspect({interval, octave_offset})}: #{reason}"
+            {:halt, {:error, error}}
+        end
+      end)
+      |> then(fn
+        {:ok, built_notes} -> {:ok, Enum.reverse(built_notes)}
+        {:error, reason} -> {:error, reason}
+      end)
+    end
   end
 
   defp octave_semitones(octave) when is_integer(octave) do
