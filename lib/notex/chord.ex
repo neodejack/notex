@@ -6,7 +6,7 @@ defmodule Notex.Chord do
   alias Notex.Constant
   alias Notex.Note
 
-  @type chord_step() :: (t() -> {:ok, t()} | {:error, binary()})
+  @type step_func() :: (t() -> {:ok, t()} | {:error, binary()})
 
   @type octave_offset() :: integer()
 
@@ -14,29 +14,64 @@ defmodule Notex.Chord do
 
   @type t() :: %Chord{
           voicings: [{Constant.interval_id(), [octave_offset()]}],
-          steps: [{step_name(), chord_step()}]
+          steps: [{step_name(), step_func()}]
         }
 
   @enforce_keys [:voicings, :steps]
   defstruct [:voicings, :steps]
 
-  def new do
+  @spec new(
+          t()
+          | (-> t())
+          | {module(), atom(), [term()]}
+        ) ::
+          {:ok, t()} | {:error, binary()}
+  def new(chord_shape) do
+    chord_shape
+    |> resolve_chord_shape()
+    |> build()
+  end
+
+  @spec major() :: t()
+  def major do
+    put_intervals(base(), :add_triad, [:one, :three, :five])
+  end
+
+  @spec minor() :: t()
+  def minor do
+    put_intervals(base(), :add_triad, [:one, :flat_three, :five])
+  end
+
+  @spec base() :: t()
+  def base do
     %Chord{
       voicings: [],
       steps: []
     }
   end
 
-  @spec append_step(t(), step_name(), chord_step()) :: t()
+  defp resolve_chord_shape(%Chord{} = chord), do: chord
+
+  defp resolve_chord_shape(fun) when is_function(fun, 0) do
+    %Chord{} = fun.()
+  end
+
+  defp resolve_chord_shape({mod, fun, args}) when is_atom(mod) and is_atom(fun) and is_list(args) do
+    %Chord{} = apply(mod, fun, args)
+  end
+
+  @spec append_step(t(), step_name(), step_func()) :: t()
   def append_step(chord, name, step) when is_atom(name) do
     %{chord | steps: [{name, step} | chord.steps]}
   end
 
   @spec build(t()) :: {:ok, t()} | {:error, binary()}
-  def build(%Chord{steps: steps}) do
+  def build(%Chord{voicings: voicings, steps: steps}) do
+    seed_chord = %{base() | voicings: voicings}
+
     steps
     |> Enum.reverse()
-    |> Enum.reduce_while({:ok, new()}, fn {name, step}, {:ok, chord_acc} ->
+    |> Enum.reduce_while({:ok, seed_chord}, fn {name, step}, {:ok, chord_acc} ->
       case run_step(step, chord_acc) do
         {:ok, %Chord{} = chord} -> {:cont, {:ok, chord}}
         {:error, msg} when is_binary(msg) -> {:halt, {:error, "error when building step: #{inspect(name)}\n#{msg}"}}
