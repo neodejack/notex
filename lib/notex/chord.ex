@@ -66,7 +66,9 @@ defmodule Notex.Chord do
   end
 
   @spec build(t()) :: {:ok, t()} | {:error, binary()}
-  def build(%Chord{voicings: voicings, steps: steps}) do
+  def build(%Chord{steps: []} = chord), do: {:ok, chord}
+
+  def build(%Chord{voicings: voicings, steps: steps}) when is_list(steps) and [] != steps do
     seed_chord = %{base() | voicings: voicings}
 
     steps
