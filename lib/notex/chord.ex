@@ -26,10 +26,12 @@ defmodule Notex.Chord do
           | {module(), atom(), [term()]}
         ) ::
           {:ok, t()} | {:error, binary()}
-  def new(chord_shape) do
-    chord_shape
-    |> resolve_chord_shape()
-    |> build()
+  def new(%Chord{} = chord), do: build(chord)
+
+  def new(fun) when is_function(fun, 0), do: build(fun.())
+
+  def new({mod, fun, args}) when is_atom(mod) and is_atom(fun) and is_list(args) do
+    mod |> apply(fun, args) |> build()
   end
 
   @spec major() :: t()
@@ -48,16 +50,6 @@ defmodule Notex.Chord do
       voicings: [],
       steps: []
     }
-  end
-
-  defp resolve_chord_shape(%Chord{} = chord), do: chord
-
-  defp resolve_chord_shape(fun) when is_function(fun, 0) do
-    %Chord{} = fun.()
-  end
-
-  defp resolve_chord_shape({mod, fun, args}) when is_atom(mod) and is_atom(fun) and is_list(args) do
-    %Chord{} = apply(mod, fun, args)
   end
 
   @spec append_step(t(), step_name(), step_func()) :: t()
@@ -190,29 +182,37 @@ defmodule Notex.Chord do
   @spec notes(t(), Note.t()) :: {:ok, [Note.t()]} | {:error, binary()}
   def notes(%Chord{} = chord, %Note{} = base_note) do
     with {:ok, %Chord{voicings: voicings}} <- build(chord) do
-      semitones =
-        for {interval, octave_offsets} <- voicings,
-            octave_offset <- Enum.reverse(octave_offsets) do
-          {Map.fetch!(Constant.interval_semitones(), interval) + octave_semitones(octave_offset),
-           {interval, octave_offset}}
-        end
-
-      semitones
-      |> Enum.reduce_while({:ok, []}, fn {semitone, {interval, octave_offset}}, {:ok, acc} ->
-        case Note.transpose(base_note, semitone) do
-          {:ok, note} ->
-            {:cont, {:ok, [note | acc]}}
-
-          {:error, reason} ->
-            error = "failed to build note for #{inspect({interval, octave_offset})}: #{reason}"
-            {:halt, {:error, error}}
-        end
-      end)
-      |> then(fn
-        {:ok, built_notes} -> {:ok, Enum.reverse(built_notes)}
-        {:error, reason} -> {:error, reason}
-      end)
+      note_targets = note_targets(voicings)
+      transpose_note_targets(base_note, note_targets)
     end
+  end
+
+  defp note_targets(voicings) do
+    interval_semitones = Constant.interval_semitones()
+
+    for {interval, octave_offsets} <- voicings,
+        octave_offset <- octave_offsets do
+      semitone = Map.fetch!(interval_semitones, interval) + octave_semitones(octave_offset)
+      {semitone, interval, octave_offset}
+    end
+  end
+
+  defp transpose_note_targets(base_note, note_targets) do
+    note_targets
+    |> Enum.reduce_while({:ok, []}, fn {semitone, interval, octave_offset}, {:ok, acc} ->
+      case Note.transpose(base_note, semitone) do
+        {:ok, note} ->
+          {:cont, {:ok, [note | acc]}}
+
+        {:error, reason} ->
+          error = "failed to build note for #{inspect({interval, octave_offset})}: #{reason}"
+          {:halt, {:error, error}}
+      end
+    end)
+    |> then(fn
+      {:ok, notes} -> {:ok, Enum.reverse(notes)}
+      {:error, reason} -> {:error, reason}
+    end)
   end
 
   defp octave_semitones(octave) when is_integer(octave) do

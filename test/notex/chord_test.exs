@@ -44,7 +44,7 @@ defmodule Notex.ChordTest do
     end
 
     test "raises when shape function does not return chord struct" do
-      assert_raise MatchError, fn ->
+      assert_raise FunctionClauseError, fn ->
         new(fn -> :not_a_chord end)
       end
     end
