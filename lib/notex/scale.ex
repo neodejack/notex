@@ -42,7 +42,7 @@ defmodule Notex.Scale do
       {:ok, [~n[C4], ~n[D4], ~n[E4], ~n[F4], ~n[G4], ~n[A4], ~n[B4]]}
 
       iex> Notex.Scale.notes(Notex.Note.new!("C", 4), :nonexistent)
-      {:error, "scale type :nonexistent not found"}
+      {:error, "scale type :nonexistent not found (tried :nonexistent and Notex.ScaleType.Nonexistent)"}
 
   """
   @spec notes(Note.t(), atom()) :: {:ok, [Note.t()]} | {:error, String.t()}
@@ -77,19 +77,26 @@ defmodule Notex.Scale do
   end
 
   defp resolve_scale_type(scale_type) do
-    case Code.ensure_loaded(scale_type) do
-      {:error, _} ->
-        capitalized = scale_type |> Atom.to_string() |> String.capitalize() |> String.to_atom()
-        module = Module.concat(ScaleType, capitalized)
+    if module_exists?(scale_type) do
+      {:ok, scale_type}
+    else
+      capitalized = scale_type |> Atom.to_string() |> String.capitalize() |> String.to_atom()
+      module = Module.concat(ScaleType, capitalized)
 
-        case Code.ensure_loaded(module) do
-          {:module, ^module} -> {:ok, module}
-          {:error, _} -> {:error, "scale type #{inspect(scale_type)} not found"}
-        end
-
-      {:module, ^scale_type} ->
-        {:ok, scale_type}
+      if module_exists?(module) do
+        {:ok, module}
+      else
+        {:error, "scale type #{inspect(scale_type)} not found (tried #{inspect(scale_type)} and #{inspect(module)})"}
+      end
     end
+  end
+
+  defp module_exists?(module) do
+    module.name()
+    module.intervals()
+    true
+  rescue
+    UndefinedFunctionError -> false
   end
 
   defp all_notes_from_tonic(tonic) do
