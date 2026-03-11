@@ -290,7 +290,14 @@ defmodule Notex.ChordTest do
       chord = put_intervals(base(), :add_triad, [:one, :three, :five])
 
       assert {:ok, notes} = Chord.notes(chord, ~n[C4])
-      assert notes == [~n[G4], ~n[E4], ~n[C4]]
+      assert notes == [~n[C4], ~n[E4], ~n[G4]]
+    end
+
+    test "returns notes sorted by absolute pitch" do
+      chord = put_intervals(base(), :stacked_root, :one, [1, -1, 0])
+
+      assert {:ok, notes} = Chord.notes(chord, ~n[C4])
+      assert notes == [~n[C3], ~n[C4], ~n[C5]]
     end
 
     test "returns build errors from pending steps" do

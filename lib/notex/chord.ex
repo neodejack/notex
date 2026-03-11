@@ -179,6 +179,22 @@ defmodule Notex.Chord do
     end
   end
 
+  @doc """
+  Returns the notes produced by a chord with a base note.
+
+  The chord is built via `build/1` before note derivation, and the resulting
+  notes are sorted by absolute pitch.
+
+  Returns `{:ok, notes}` on success, or `{:error, reason}` when building or
+  transposition fails.
+
+  ## Examples
+
+      iex> chord = Notex.Chord.put_intervals(Notex.Chord.base(), :add_triad, [:one, :three, :five])
+      iex> Notex.Chord.notes(chord, ~n[C4])
+      {:ok, [~n[C4], ~n[E4], ~n[G4]]}
+
+  """
   @spec notes(t(), Note.t()) :: {:ok, [Note.t()]} | {:error, binary()}
   def notes(%Chord{} = chord, %Note{} = base_note) do
     with {:ok, %Chord{voicings: voicings}} <- build(chord) do
@@ -209,10 +225,17 @@ defmodule Notex.Chord do
           {:halt, {:error, error}}
       end
     end)
-    |> then(fn
-      {:ok, notes} -> {:ok, Enum.reverse(notes)}
-      {:error, reason} -> {:error, reason}
-    end)
+    |> sort_transposed_notes()
+  end
+
+  defp sort_transposed_notes({:ok, notes}) do
+    sorted_notes = Enum.sort(notes, &(Note.compare(&1, &2) in [:lt, :eq]))
+
+    {:ok, sorted_notes}
+  end
+
+  defp sort_transposed_notes({:error, reason}) do
+    {:error, reason}
   end
 
   defp octave_semitones(octave) when is_integer(octave) do
