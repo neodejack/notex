@@ -24,9 +24,25 @@ defmodule Notex.ChordTest do
     end
 
     test "builds when given a zero-arity function shape" do
-      {:ok, chord} = new(&major/0)
+      {:ok, chord} = new(&Notex.Chord.Builtin.major/0)
 
       assert chord.voicings == [five: [0], three: [0], one: [0]]
+    end
+
+    test "builds when given a builtin chord atom" do
+      {:ok, chord} = new(:major)
+
+      assert chord.voicings == [five: [0], three: [0], one: [0]]
+    end
+
+    test "builds minor builtin chord atom" do
+      {:ok, chord} = new(:minor)
+
+      assert chord.voicings == [five: [0], flat_three: [0], one: [0]]
+    end
+
+    test "returns error for unknown chord atom" do
+      assert {:error, "chord name provided can't be found in built-in chords: :nonexistent"} = new(:nonexistent)
     end
 
     defmodule CustomShape do
@@ -51,7 +67,7 @@ defmodule Notex.ChordTest do
 
     test "raises for unsupported chord shape" do
       assert_raise FunctionClauseError, fn ->
-        apply(Chord, :new, [:major])
+        apply(Chord, :new, ["not_a_valid_shape"])
       end
     end
   end

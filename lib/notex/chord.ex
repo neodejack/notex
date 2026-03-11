@@ -24,6 +24,7 @@ defmodule Notex.Chord do
           t()
           | (-> t())
           | {module(), atom(), [term()]}
+          | atom()
         ) ::
           {:ok, t()} | {:error, binary()}
   def new(%Chord{} = chord), do: build(chord)
@@ -34,14 +35,10 @@ defmodule Notex.Chord do
     mod |> apply(fun, args) |> build()
   end
 
-  @spec major() :: t()
-  def major do
-    put_intervals(base(), :add_triad, [:one, :three, :five])
-  end
-
-  @spec minor() :: t()
-  def minor do
-    put_intervals(base(), :add_triad, [:one, :flat_three, :five])
+  def new(name) when is_atom(name) do
+    Chord.Builtin |> apply(name, []) |> build()
+  rescue
+    UndefinedFunctionError -> {:error, "chord name provided can't be found in built-in chords: #{inspect(name)}"}
   end
 
   @spec base() :: t()
