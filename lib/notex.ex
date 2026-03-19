@@ -42,7 +42,8 @@ defmodule Notex do
 
       use Notex
 
-  This imports the `~n` sigil and the `is_interval/1` guard.
+  This imports the `~n` sigil and the `is_interval/1` guard, and aliases
+  `Notex.Chord`, `Notex.Note`, and `Notex.Scale`
   """
 
   defmacro __using__(_opts) do
