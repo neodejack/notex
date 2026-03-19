@@ -4,7 +4,7 @@ defmodule Notex.MixProject do
   def project do
     [
       app: :notex,
-      version: "0.1.1",
+      version: "0.1.2",
       elixir: "~> 1.16",
       name: "Notex",
       start_permanent: Mix.env() == :prod,
